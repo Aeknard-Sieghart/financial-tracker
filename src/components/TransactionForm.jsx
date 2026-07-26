@@ -1,5 +1,14 @@
 import { useState } from 'react'
 
+// Helper function to get today's date in YYYY-MM-DD format
+  function getTodayDate() {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
 function TransactionForm({ onAdd, onUpdate, editingTransaction, onCancelEdit }) {
   // Compute the initial form values once, based on whether we're editing or adding.
   // Because the parent gives this component a `key` tied to editingTransaction,
@@ -28,15 +37,6 @@ function TransactionForm({ onAdd, onUpdate, editingTransaction, onCancelEdit }) 
   const categories = {
     income: ['Salary', 'Freelance', 'Bonus', 'Investment', 'Other'],
     expense: ['Rent', 'Food', 'Transport', 'Utilities', 'Entertainment', 'Shopping', 'Other'],
-  }
-
-  // Helper function to get today's date in YYYY-MM-DD format
-  function getTodayDate() {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
   }
 
   // Format the amount for display (e.g., 1000 cents = 1,000.00)
@@ -103,13 +103,11 @@ function TransactionForm({ onAdd, onUpdate, editingTransaction, onCancelEdit }) 
       onAdd(newTransaction)
 
       // Reset form only when adding (editing unmounts/remounts via key change instead)
-      setFormData({
-        type: 'expense',
+      setFormData((prev) => ({
+        ...prev,
         amountCents: 0,
-        category: 'Rent',
         description: '',
-        date: getTodayDate(),
-      })
+      }))
     }
   }
 
