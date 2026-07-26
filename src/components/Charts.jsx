@@ -25,7 +25,7 @@ function formatShortAmount(value) {
   return `₱${value.toFixed(2)}`
 }
 
-// Format full amount for tooltips (e.g. 15000 -> ₱15,000.00)
+// Format full amount for tooltips
 function formatFullAmount(value) {
   return `₱${value.toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -33,15 +33,26 @@ function formatFullAmount(value) {
   })}`
 }
 
-// Get short month name from YYYY-MM-DD date string (e.g. "2026-07-01" -> "Jul 2026")
+// Get short month label from YYYY-MM-DD date string
 function getMonthLabel(dateString) {
   const date = new Date(dateString + 'T00:00:00')
   return date.toLocaleString('en-US', { month: 'short', year: 'numeric' })
 }
 
+// Shared tooltip style
+const tooltipStyle = {
+  contentStyle: {
+    background: 'rgba(79, 70, 229, 0.15)',
+    border: '1px solid rgba(79, 70, 229, 0.3)',
+    borderRadius: '8px',
+    color: 'var(--text-primary)',
+    backdropFilter: 'blur(8px)',
+    fontSize: '0.85rem',
+  },
+}
+
 function Charts({ transactions }) {
   // ── PIE CHART DATA ──────────────────────────────────────────────
-  // Group expenses by category and sum amounts
   const expenseByCategory = transactions
     .filter((t) => t.type === 'expense')
     .reduce((acc, t) => {
@@ -49,42 +60,26 @@ function Charts({ transactions }) {
       return acc
     }, {})
 
-  // Convert to array format Recharts expects: [{ name, value }]
   const pieData = Object.entries(expenseByCategory).map(([name, value]) => ({
     name,
     value,
   }))
 
   // ── BAR CHART DATA ───────────────────────────────────────────────
-  // Group transactions by month, summing income and expenses separately
   const monthlyData = transactions.reduce((acc, t) => {
-    // Get "Mon YYYY" label from the date
     const month = getMonthLabel(t.date)
-
-    // Initialize month entry if it doesn't exist yet
-    if (!acc[month]) {
-      acc[month] = { month, income: 0, expenses: 0 }
-    }
-
-    // Add to the correct bucket
-    if (t.type === 'income') {
-      acc[month].income += t.amount
-    } else {
-      acc[month].expenses += t.amount
-    }
-
+    if (!acc[month]) acc[month] = { month, income: 0, expenses: 0 }
+    if (t.type === 'income') acc[month].income += t.amount
+    else acc[month].expenses += t.amount
     return acc
   }, {})
 
-  // Sort months chronologically and convert to array
   const barData = Object.values(monthlyData).sort(
     (a, b) => new Date(a.month) - new Date(b.month)
   )
 
-  // Don't render charts if there are no transactions yet
-  if (transactions.length === 0) {
-    return null
-  }
+  // Don't render if no transactions
+  if (transactions.length === 0) return null
 
   return (
     <div className="charts-container">
@@ -96,30 +91,37 @@ function Charts({ transactions }) {
         {pieData.length > 0 && (
           <div className="chart-card">
             <h3>Expenses by Category</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={PIE_COLORS[index % PIE_COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => formatFullAmount(value)}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            {/* Wrap in a div with explicit width to fix mobile rendering */}
+            <div style={{ width: '100%', height: 280 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >   
+                    {pieData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={PIE_COLORS[index % PIE_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => formatFullAmount(value)}
+                    {...tooltipStyle}
+                  />
+                  <Legend
+                    iconSize={10}
+                    wrapperStyle={{ fontSize: '0.8rem' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
 
@@ -127,35 +129,49 @@ function Charts({ transactions }) {
         {barData.length > 0 && (
           <div className="chart-card">
             <h3>Income vs Expenses by Month</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart
-                data={barData}
-                margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
-                />
-                <YAxis
-                  tickFormatter={formatShortAmount}
-                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
-                  width={70}
-                />
-                <Tooltip
-                  formatter={(value) => formatFullAmount(value)}
-                  contentStyle={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="income" name="Income" fill="#16a34a" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expenses" name="Expenses" fill="#dc2626" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ width: '100%', height: 280 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={barData}
+                  margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--border-color)"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
+                  />
+                  <YAxis
+                    tickFormatter={formatShortAmount}
+                    tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
+                    width={65}
+                  />
+                  <Tooltip
+                    formatter={(value) => formatFullAmount(value)}
+                    cursor={{ fill: 'rgba(79, 70, 229, 0.08)' }}
+                    {...tooltipStyle}
+                  />
+                  <Legend
+                    iconSize={10}
+                    wrapperStyle={{ fontSize: '0.8rem' }}
+                  />
+                  <Bar
+                    dataKey="income"
+                    name="Income"
+                    fill="#16a34a"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="expenses"
+                    name="Expenses"
+                    fill="#dc2626"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
 
