@@ -11,8 +11,9 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from 'recharts'
+import { findCategory } from '../hooks/useCategories'
 
-// Colors for pie chart slices
+// Fallback colors for any category without one of its own
 const PIE_COLORS = [
   '#4f46e5', '#16a34a', '#dc2626', '#f59e0b',
   '#0ea5e9', '#8b5cf6', '#ec4899', '#14b8a6',
@@ -51,7 +52,7 @@ const tooltipStyle = {
   },
 }
 
-function Charts({ transactions }) {
+function Charts({ transactions, categories }) {
   // ── PIE CHART DATA ──────────────────────────────────────────────
   const expenseByCategory = transactions
     .filter((t) => t.type === 'expense')
@@ -60,9 +61,13 @@ function Charts({ transactions }) {
       return acc
     }, {})
 
-  const pieData = Object.entries(expenseByCategory).map(([name, value]) => ({
+  // Each slice carries the colour assigned in the category manager
+  const pieData = Object.entries(expenseByCategory).map(([name, value], index) => ({
     name,
     value,
+    color:
+      findCategory(categories, 'expense', name).color ||
+      PIE_COLORS[index % PIE_COLORS.length],
   }))
 
   // ── BAR CHART DATA ───────────────────────────────────────────────
@@ -103,12 +108,9 @@ function Charts({ transactions }) {
                     outerRadius={100}
                     paddingAngle={3}
                     dataKey="value"
-                  >   
+                  >
                     {pieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={PIE_COLORS[index % PIE_COLORS.length]}
-                      />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip
