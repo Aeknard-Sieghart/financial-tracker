@@ -1,15 +1,22 @@
 import { useState } from 'react'
+import CategorySelect from './CategorySelect'
 
 // Helper function to get today's date in YYYY-MM-DD format
-  function getTodayDate() {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
+function getTodayDate() {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
-function TransactionForm({ onAdd, onUpdate, editingTransaction, onCancelEdit }) {
+function TransactionForm({
+  onAdd,
+  onUpdate,
+  editingTransaction,
+  onCancelEdit,
+  categories,
+}) {
   // Compute the initial form values once, based on whether we're editing or adding.
   // Because the parent gives this component a `key` tied to editingTransaction,
   // React will re-run this initializer fresh whenever editing starts/stops/switches —
@@ -24,20 +31,18 @@ function TransactionForm({ onAdd, onUpdate, editingTransaction, onCancelEdit }) 
         date: editingTransaction.date,
       }
     }
+    const firstExpense = (categories.expense || [])[0]
     return {
       type: 'expense',
       amountCents: 0,
-      category: 'Rent',
+      category: firstExpense ? firstExpense.name : 'Other',
       description: '',
       date: getTodayDate(),
     }
   })
 
-  // Category options mapped by transaction type
-  const categories = {
-    income: ['Salary', 'Freelance', 'Bonus', 'Investment', 'Other'],
-    expense: ['Rent', 'Food', 'Transport', 'Utilities', 'Entertainment', 'Shopping', 'Other'],
-  }
+  // Options for the currently selected type
+  const options = categories[formData.type] || []
 
   // Format the amount for display (e.g., 1000 cents = 1,000.00)
   function displayAmount(cents) {
@@ -48,10 +53,11 @@ function TransactionForm({ onAdd, onUpdate, editingTransaction, onCancelEdit }) 
 
   // Handle type change and update category to first option of new type
   function handleTypeChange(newType) {
+    const first = (categories[newType] || [])[0]
     setFormData((prev) => ({
       ...prev,
       type: newType,
-      category: categories[newType][0],
+      category: first ? first.name : 'Other',
     }))
   }
 
@@ -138,21 +144,16 @@ function TransactionForm({ onAdd, onUpdate, editingTransaction, onCancelEdit }) 
 
       <div className="form-group">
         <label>Category</label>
-        <select
+        <CategorySelect
+          options={options}
           value={formData.category}
-          onChange={(e) =>
+          onChange={(name) =>
             setFormData((prev) => ({
               ...prev,
-              category: e.target.value,
+              category: name,
             }))
           }
-        >
-          {categories[formData.type].map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       <div className="form-group">
