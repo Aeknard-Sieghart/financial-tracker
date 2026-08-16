@@ -45,6 +45,8 @@ function TransactionList({
   filters,
   onFilterChange,
   allCategories,
+  // Category definitions, for the row icons
+  categories,
 }) {
   return (
     <div className="transaction-list">
@@ -95,6 +97,7 @@ function TransactionList({
             transaction={transaction}
             onDelete={onDelete}
             onEdit={onEdit}
+            categories={categories}
           />
         ))
       )}
