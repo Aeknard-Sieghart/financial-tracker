@@ -1,5 +1,6 @@
 import TransactionForm from './TransactionForm'
 import BudgetManager from './BudgetManager'
+import CategoryManager from './CategoryManager'
 
 function Sidebar({
   isOpen,
@@ -12,7 +13,17 @@ function Sidebar({
   // BudgetManager props
   budgets,
   onBudgetUpdate,
+  // CategoryManager props
+  categories,
+  transactions,
+  onCategoryAdd,
+  onCategoryEdit,
+  onCategoryDelete,
 }) {
+  // Remount BudgetManager when the expense category names change, so its
+  // internal cents state always matches the categories on screen.
+  const budgetKey = (categories.expense || []).map((c) => c.name).join('|')
+
   return (
     <>
       {/* Backdrop overlay — clicking it closes the sidebar */}
@@ -41,10 +52,25 @@ function Sidebar({
             onUpdate={onUpdate}
             editingTransaction={editingTransaction}
             onCancelEdit={onCancelEdit}
+            categories={categories}
           />
 
           {/* Budget Manager */}
-          <BudgetManager budgets={budgets} onUpdate={onBudgetUpdate} />
+          <BudgetManager
+            key={budgetKey}
+            budgets={budgets}
+            onUpdate={onBudgetUpdate}
+            categories={categories}
+          />
+
+          {/* Category Manager */}
+          <CategoryManager
+            categories={categories}
+            transactions={transactions}
+            onAdd={onCategoryAdd}
+            onEdit={onCategoryEdit}
+            onDelete={onCategoryDelete}
+          />
 
         </div>
       </div>
