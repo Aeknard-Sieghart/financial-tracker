@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import CategoryIcon from './CategoryIcon'
+import { findCategory } from '../hooks/useCategories'
 
 // Format number with thousand separators
 function formatAmount(num) {
@@ -13,7 +15,7 @@ function getCurrentMonth() {
   return new Date().toISOString().slice(0, 7)
 }
 
-function BudgetStatus({ transactions, budgets }) {
+function BudgetStatus({ transactions, budgets, categories }) {
   // Hidden by default
   const [isOpen, setIsOpen] = useState(false)
 
@@ -84,12 +86,19 @@ function BudgetStatus({ transactions, budgets }) {
               const percentage = Math.min((spent / limit) * 100, 100)
               const isOver = spent > limit
               const isWarning = percentage >= 80 && !isOver
+              const cat = findCategory(categories, 'expense', category)
 
               return (
                 <div key={category} className="budget-status-item">
                   {/* Category name and amounts */}
                   <div className="budget-status-header">
                     <span className="budget-status-category">
+                      <CategoryIcon
+                        category={cat}
+                        size={22}
+                        radius={6}
+                        strokeWidth={1.9}
+                      />
                       {isOver && (
                         <span className="budget-icon over">⚠</span>
                       )}
