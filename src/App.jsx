@@ -10,7 +10,14 @@ import Sidebar from './components/Sidebar'
 import { filterByPeriod } from './utils/filterByPeriod'
 import { sortTransactions } from './utils/sortTransactions'
 import { useToast } from './hooks/useToast'
+import {
+  useCategories,
+  makeCategoryId,
+  allCategoryNames,
+  FALLBACK_NAME,
+} from './hooks/useCategories'
 import './App.css'
+import './styles/categories.css'
 
 // Get current month in YYYY-MM format
 function getCurrentMonth() {
@@ -35,6 +42,9 @@ function App() {
     const saved = localStorage.getItem('budgets')
     return saved ? JSON.parse(saved) : {}
   })
+
+  // Categories (name + color + icon), persisted to localStorage by the hook
+  const { categories, setCategories } = useCategories()
 
   // Track which transaction is being edited (null means add mode)
   const [editingTransaction, setEditingTransaction] = useState(null)
@@ -194,6 +204,85 @@ function App() {
     addToast('Budgets saved!')
   }
 
+  // ── CATEGORY HANDLERS ─────────────────────────────────────────────
+
+  // Add a new category to the given type
+  function handleCategoryAdd(categoryType, draft) {
+    setCategories((prev) => ({
+      ...prev,
+      [categoryType]: [...prev[categoryType], { id: makeCategoryId(), ...draft, builtin: false }],
+    }))
+    addToast(`Category "${draft.name}" added!`)
+  }
+
+  // Edit a category — a rename has to follow through everywhere it's referenced
+  function handleCategoryEdit(type, id, draft) {
+    const previous = categories[type].find((c) => c.id === id)
+
+    setCategories((prev) => ({
+      ...prev,
+      [type]: prev[type].map((c) => (c.id === id ? { ...c, ...draft } : c)),
+    }))
+    if (previous && previous.name !== draft.name) {
+      // Re-tag every transaction that used the old name
+      setTransactions((prev) =>
+        prev.map((t) =>
+          t.type === type && t.category === previous.name
+            ? { ...t, category: draft.name }
+            : t
+        )
+      )
+
+      // Budgets are keyed by category name, so move the limit across
+      if (type === 'expense' && budgets[previous.name] !== undefined) {
+        setBudgets((prev) => {
+          const newBudgets = { ...prev }
+          newBudgets[draft.name] = newBudgets[previous.name]
+          delete newBudgets[previous.name]
+          return newBudgets
+        })
+      }
+
+      // Keep the transaction filter pointing at the same category
+      setFilters((prev) =>
+        prev.category === previous.name ? { ...prev, category: draft.name } : prev
+      )
+    }
+
+    addToast('Category updated!')
+  }
+
+  // Delete a category — its transactions fall back to "Other"
+  function handleCategoryDelete(type, category) {
+
+    setCategories((prev) => ({
+      ...prev,    
+      [type]: prev[type].filter((c) => c.id !== category.id),
+    }))
+
+    setTransactions((prev) =>
+      prev.map((t) =>
+        t.type === type && t.category === category.name
+          ? { ...t, category: FALLBACK_NAME }
+          : t
+      )
+    )
+
+    if (type === 'expense' && budgets[category.name] !== undefined) {
+      setBudgets((prev) => {
+        const newBudgets = { ...prev }
+        delete newBudgets[category.name]
+        return newBudgets
+      })
+    }
+
+    setFilters((prev) =>
+      prev.category === category.name ? { ...prev, category: '' } : prev
+    )
+
+    addToast(`Category "${category.name}" deleted.`, 'warning')
+  }
+
   // Memoized removeToast to prevent re-renders
   const handleRemoveToast = useCallback((id) => {
     removeToast(id)
@@ -216,8 +305,14 @@ function App() {
     sortBy
   )
 
-  // Get all unique categories from existing transactions
-  const allCategories = [...new Set(transactions.map((t) => t.category))].sort()
+  // Filter dropdown options: every defined category, plus any legacy name
+  // still attached to a transaction
+  const allCategories = [
+    ...new Set([
+      ...allCategoryNames(categories),
+      ...transactions.map((t) => t.category),
+    ]),
+  ].sort()
 
   return (
     <div>
@@ -232,7 +327,7 @@ function App() {
         onCancel={handleCancelDelete}
       />
 
-      {/* Sidebar — Add Transaction + Budget Manager */}
+      {/* Sidebar — Add Transaction + Budgets + Categories */}
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -242,6 +337,11 @@ function App() {
         onCancelEdit={handleCancelEdit}
         budgets={budgets}
         onBudgetUpdate={handleBudgetUpdate}
+        categories={categories}
+        transactions={transactions}
+        onCategoryAdd={handleCategoryAdd}
+        onCategoryEdit={handleCategoryEdit}
+        onCategoryDelete={handleCategoryDelete}
       />
 
       {/* Header */}
@@ -280,10 +380,14 @@ function App() {
         <Summary transactions={periodTransactions} />
 
         {/* Budget status */}
-        <BudgetStatus transactions={transactions} budgets={budgets} />
+        <BudgetStatus
+          transactions={transactions}
+          budgets={budgets}
+          categories={categories}
+        />
 
         {/* Overview charts */}
-        <Charts transactions={periodTransactions} />
+        <Charts transactions={periodTransactions} categories={categories} />
 
         {/* Transaction list with filter inside */}
         <TransactionList
@@ -296,6 +400,7 @@ function App() {
           filters={filters}
           onFilterChange={handleFilterChange}
           allCategories={allCategories}
+          categories={categories}
         />
 
       </div>
