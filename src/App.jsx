@@ -18,6 +18,7 @@ import {
 } from './hooks/useCategories'
 import './App.css'
 import './styles/categories.css'
+import './styles/refined.css'
 
 // Get current month in YYYY-MM format
 function getCurrentMonth() {
@@ -51,6 +52,8 @@ function App() {
 
   // Sidebar open/close state
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [payCategory, setPayCategory] = useState(null)
+  const [payAmount, setPayAmount] = useState(0)
 
   // Filter state for transaction list (search, type, category)
   const [filters, setFilters] = useState({
@@ -329,9 +332,11 @@ function App() {
 
       {/* Sidebar — Add Transaction + Budgets + Categories */}
       <Sidebar
+        payCategory={payCategory}
+        payAmount={payCategory ? payAmount : undefined}
         isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onAdd={(t) => { addTransaction(t); setSidebarOpen(false) }}
+        onClose={() => { setSidebarOpen(false); setPayCategory(null) }}
+        onAdd={(t) => { addTransaction(payCategory ? { ...t, budgetPayment: true } : t); setSidebarOpen(false); setPayCategory(null) }}
         onUpdate={updateTransaction}
         editingTransaction={editingTransaction}
         onCancelEdit={handleCancelEdit}
@@ -347,15 +352,7 @@ function App() {
       {/* Header */}
       <div className="app-header">
         <div className="app-header-left">
-          {/* Hamburger menu button */}
-          <button
-            className="hamburger-btn"
-            onClick={() => setSidebarOpen(true)}
-            title="Open menu"
-          >
-            <span /><span /><span />
-          </button>
-          <h1>Financial Tracker</h1>
+          <div><p className="brand-eyebrow">PERSONAL FINANCE</p><h1>Financial Tracker</h1></div>
         </div>
         <button
           className="theme-toggle"
@@ -368,6 +365,7 @@ function App() {
 
       {/* Main content */}
       <div className="main-content">
+        <div className="dashboard-intro"><div><h2>Your financial overview</h2><p>A clear view of your money, all in one place.</p></div><button className="primary-action" onClick={() => { setEditingTransaction(null); setSidebarOpen(true) }}>+ Manage finances</button></div>
 
         {/* Period filter */}
         <PeriodFilter
@@ -381,6 +379,7 @@ function App() {
 
         {/* Budget status */}
         <BudgetStatus
+          onPay={(category, remaining) => { setPayCategory(category); setPayAmount(remaining); setEditingTransaction(null); setSidebarOpen(true) }}
           transactions={transactions}
           budgets={budgets}
           categories={categories}

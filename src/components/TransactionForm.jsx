@@ -16,6 +16,8 @@ function TransactionForm({
   editingTransaction,
   onCancelEdit,
   categories,
+  initialCategory,
+  initialAmount,
 }) {
   // Compute the initial form values once, based on whether we're editing or adding.
   // Because the parent gives this component a `key` tied to editingTransaction,
@@ -34,8 +36,8 @@ function TransactionForm({
     const firstExpense = (categories.expense || [])[0]
     return {
       type: 'expense',
-      amountCents: 0,
-      category: firstExpense ? firstExpense.name : 'Other',
+      amountCents: Math.round((initialAmount || 0) * 100),
+      category: initialCategory || (firstExpense ? firstExpense.name : 'Other'),
       description: '',
       date: getTodayDate(),
     }
@@ -173,7 +175,7 @@ function TransactionForm({
 
       <div className="form-group">
         <label>Date</label>
-        <input
+        <PeriodDatePicker
           type="date"
           value={formData.date}
           onChange={(e) =>
@@ -200,3 +202,4 @@ function TransactionForm({
 }
 
 export default TransactionForm
+import PeriodDatePicker from './PeriodDatePicker'

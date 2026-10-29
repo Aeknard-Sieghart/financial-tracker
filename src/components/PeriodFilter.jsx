@@ -1,3 +1,4 @@
+import PeriodDatePicker from './PeriodDatePicker'
 // Available period view options (By Date removed)
 const PERIOD_OPTIONS = [
   { value: 'all', label: 'All Time' },
@@ -50,7 +51,7 @@ function PeriodFilter({ period, onChange, transactions }) {
           <>
             <div className="period-input-group">
               <label>From</label>
-              <input
+              <PeriodDatePicker
                 type="date"
                 value={period.dateFrom || todayString}
                 max={period.dateTo || todayString}
@@ -59,7 +60,7 @@ function PeriodFilter({ period, onChange, transactions }) {
             </div>
             <div className="period-input-group">
               <label>To</label>
-              <input
+              <PeriodDatePicker
                 type="date"
                 value={period.dateTo || todayString}
                 min={period.dateFrom || ''}
@@ -73,7 +74,7 @@ function PeriodFilter({ period, onChange, transactions }) {
         {period.type === 'by-month' && (
           <div className="period-input-group">
             <label>Select Month</label>
-            <input
+            <PeriodDatePicker
               type="month"
               value={period.month || currentMonth}
               onChange={(e) => onChange({ ...period, month: e.target.value })}
@@ -86,7 +87,7 @@ function PeriodFilter({ period, onChange, transactions }) {
           <>
             <div className="period-input-group">
               <label>From</label>
-              <input
+              <PeriodDatePicker
                 type="month"
                 value={period.monthFrom || currentMonth}
                 max={period.monthTo || currentMonth}
@@ -95,7 +96,7 @@ function PeriodFilter({ period, onChange, transactions }) {
             </div>
             <div className="period-input-group">
               <label>To</label>
-              <input
+              <PeriodDatePicker
                 type="month"
                 value={period.monthTo || currentMonth}
                 min={period.monthFrom || ''}
