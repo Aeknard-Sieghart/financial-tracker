@@ -59,6 +59,11 @@ h1 { font-size:1.3rem; letter-spacing:-.04em; }
 .filter-active-dot { background:var(--accent); }
 .budget-pay-btn { align-self:flex-end; padding:.4rem 1rem; border:1px solid var(--accent); border-radius:7px; background:var(--accent-soft); color:var(--accent); font-weight:600; }
 .budget-pay-btn:hover { background:#245c72; color:white; }
+.data-backup { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding:1.25rem 1.5rem; background:var(--bg-card); border:1px solid var(--border-color); border-radius:14px; }
+.data-backup h2 { margin:0 0 .3rem; }
+.data-backup p { color:var(--text-secondary); font-size:.85rem; }
+.backup-confirm { flex-basis:100%; padding-top:1rem; border-top:1px solid var(--border-color); }
+.backup-confirm .export-buttons { margin-top:1rem; }
 .budget-amount-actions { display:flex; align-items:center; justify-content:flex-end; gap:.75rem; flex-wrap:wrap; }
 .budget-paid-status { padding:.15rem .5rem; border-radius:5px; background:#23826320; color:#39a984; font-size:.7rem; font-weight:600; }
 .budget-usage-note { color:var(--text-secondary); font-size:.75rem; }

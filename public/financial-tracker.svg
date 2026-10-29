@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Financial Tracker</title>
+  <rect width="64" height="64" rx="16" fill="#245c72"/>
+  <path d="M16 24v-3a5 5 0 0 1 5-5h25" stroke="#a7d9d3" stroke-width="3.5" stroke-linecap="round"/>
+  <rect x="14" y="23" width="38" height="27" rx="6" stroke="#fff" stroke-width="3.5"/>
+  <path d="m22 41 7-7 6 4 8-9m-7 0h7v7" stroke="#a7d9d3" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

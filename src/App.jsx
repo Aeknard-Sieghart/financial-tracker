@@ -7,6 +7,7 @@ import Toast from './components/Toast'
 import ConfirmDialog from './components/ConfirmDialog'
 import BudgetStatus from './components/BudgetStatus'
 import Sidebar from './components/Sidebar'
+import DataBackup from './components/DataBackup'
 import { filterByPeriod } from './utils/filterByPeriod'
 import { sortTransactions } from './utils/sortTransactions'
 import { useToast } from './hooks/useToast'
@@ -388,6 +389,14 @@ function App() {
         {/* Overview charts */}
         <Charts transactions={periodTransactions} categories={categories} />
 
+        <DataBackup transactions={transactions} budgets={budgets} categories={categories} onRestore={(backup) => {
+          setTransactions(backup.transactions)
+          if (backup.budgets) setBudgets(backup.budgets)
+          if (backup.categories) setCategories(backup.categories)
+          setFilters({ searchQuery: '', type: '', category: '' })
+          setEditingTransaction(null)
+          addToast('Backup restored successfully!')
+        }} />
         {/* Transaction list with filter inside */}
         <TransactionList
           transactions={filteredTransactions}
