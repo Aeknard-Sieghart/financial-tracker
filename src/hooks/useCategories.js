@@ -50,7 +50,7 @@ export function allCategoryNames(categories) {
 // Pull in any category names that exist on saved transactions but aren't in
 // the list yet, so upgrading from the hardcoded version doesn't orphan data.
 function adoptOrphans(categories) {
-  let transactions = []
+  let transactions
   try {
     transactions = JSON.parse(localStorage.getItem('transactions')) || []
   } catch {

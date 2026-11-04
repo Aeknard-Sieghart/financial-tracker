@@ -2,9 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import TransactionForm from './TransactionForm'
 import BudgetManager from './BudgetManager'
 import CategoryManager from './CategoryManager'
+import Bills from './Bills'
+import RecurringManager from './RecurringManager'
 
 function Sidebar({
   isOpen,
+  accounts,
+  schedules,
+  onSchedulesChange,
+  bills,
+  onBillsChange,
   payCategory,
   payAmount,
   onClose,
@@ -34,7 +41,7 @@ function Sidebar({
     if (isOpen) dialog.current.showModal()
     else dialog.current.close()
   }, [isOpen])
-  const titles = { transaction: 'Add transaction', budgets: 'Monthly budgets', categories: 'Categories' }
+  const titles = { transaction: 'Add transaction', budgets: 'Monthly budgets', categories: 'Categories', bills: 'Add bill', recurring: 'Recurring transactions' }
 
   return (
     <>
@@ -56,12 +63,13 @@ function Sidebar({
         <div className="sidebar-content">
           {!active && <nav className="workspace-menu" aria-label="Workspace">
             <p>Manage your finances</p>
-            {Object.entries(titles).map(([id, title], index) => <button key={id} onClick={() => setSelected(id)}><span className="menu-symbol">{['+', '₱', '▦'][index]}</span><span><strong>{title}</strong><small>{['Record income or an expense', 'Plan your spending limits', 'Organize income and expenses'][index]}</small></span><span aria-hidden="true">›</span></button>)}
+            {Object.entries(titles).map(([id, title], index) => <button key={id} onClick={() => setSelected(id)}><span className="menu-symbol">{['+', '₱', '▦', '▤', '↻'][index]}</span><span><strong>{title}</strong><small>{['Record income or an expense', 'Plan your spending limits', 'Organize income and expenses', 'Set an amount and monthly due date', 'Automatically record monthly entries'][index]}</small></span><span aria-hidden="true">›</span></button>)}
           </nav>}
           {active && !editingTransaction && <button className="menu-back" onClick={() => setSelected(null)}>← Back to menu</button>}
 
           {/* Add / Edit Transaction Form */}
           {active === 'transaction' && <TransactionForm
+            accounts={accounts}
             key={editingTransaction ? editingTransaction.id : payCategory || 'new'}
             initialCategory={payCategory}
             initialAmount={payAmount}
@@ -73,6 +81,8 @@ function Sidebar({
           />}
 
           {/* Budget Manager */}
+          {active === 'recurring' && <RecurringManager accounts={accounts} schedules={schedules} categories={categories} onChange={onSchedulesChange} />}
+          {active === 'bills' && <Bills editorOnly bills={bills} transactions={transactions} categories={categories} onChange={onBillsChange} onDone={close} />}
           {active === 'budgets' && <BudgetManager
             key={budgetKey}
             budgets={budgets}

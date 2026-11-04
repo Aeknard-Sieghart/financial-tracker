@@ -16,7 +16,7 @@ function getCurrentMonth() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
-function BudgetStatus({ transactions, budgets, categories, onPay }) {
+function BudgetStatus({ transactions, budgets, categories }) {
   // Hidden by default
   const [isOpen, setIsOpen] = useState(false)
 
@@ -87,14 +87,7 @@ function BudgetStatus({ transactions, budgets, categories, onPay }) {
               const percentage = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0
               const isOver = spent > limit
               const cat = findCategory(categories, 'expense', category)
-              const isBill = /^(rent|wi-?fi|internet|utilities|electricity|water|phone|bills)$/i.test(category) || transactions.some((t) => t.category === category && t.budgetPayment)
-              const paymentTotal = monthlyExpenses.filter((t) => t.category === category && t.budgetPayment).reduce((sum, t) => sum + Math.round(t.amount * 100), 0) / 100
-              // Recognize older bill entries, while keeping ordinary spending separate.
-              const paid = isBill ? Math.max(paymentTotal, spent) : paymentTotal
-              const remaining = Math.max(0, Math.round((limit - paid) * 100) / 100)
-              const isPaid = isBill && limit > 0 && remaining === 0
-              const isPartial = isBill && paid > 0 && !isPaid
-              const isWarning = !isBill && percentage >= 80 && !isOver
+              const isWarning = percentage >= 80 && !isOver
 
               return (
                 <div key={category} className="budget-status-item">
@@ -114,16 +107,14 @@ function BudgetStatus({ transactions, budgets, categories, onPay }) {
                         <span className="budget-icon warning">!</span>
                       )}
                       {category}
-                      {isPaid && <span className="budget-paid-status">Paid</span>}
-                      {isPartial && <span className="budget-partial-status">Partially paid</span>}
-                      {isBill && !isPaid && !isPartial && <span className="budget-usage-note">Unpaid</span>}
+                      <span className="budget-usage-note">{isOver ? 'Over budget' : isWarning ? 'Near limit' : 'Within budget'}</span>
                     </span>
                     <div className="budget-amount-actions"><span
                       className={`budget-status-amount ${isOver ? 'over' : ''}`}
                     >
                       ₱{formatAmount(spent)} / ₱{formatAmount(limit)}
                     </span>
-                    {!isPaid && limit > 0 && <button type="button" className="budget-pay-btn" aria-label={`${isPartial ? 'Pay remaining' : 'Pay'} ${category}`} onClick={() => onPay(category, remaining)}>{isPartial ? 'Pay remaining' : 'Pay'}</button>}</div>
+                    </div>
                   </div>
 
                   {/* Progress bar */}

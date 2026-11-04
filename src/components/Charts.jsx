@@ -15,8 +15,8 @@ import { findCategory } from '../hooks/useCategories'
 
 // Fallback colors for any category without one of its own
 const PIE_COLORS = [
-  '#4f46e5', '#16a34a', '#dc2626', '#f59e0b',
-  '#0ea5e9', '#8b5cf6', '#ec4899', '#14b8a6',
+  '#43839a', '#63a69b', '#c28a73', '#b2a16a',
+  '#789ab7', '#8b8fae', '#b68496', '#79b9bb',
 ]
 
 // Format large numbers compactly (e.g. 15000 -> 15K)
@@ -43,13 +43,16 @@ function getMonthLabel(dateString) {
 // Shared tooltip style
 const tooltipStyle = {
   contentStyle: {
-    background: 'rgba(79, 70, 229, 0.15)',
-    border: '1px solid rgba(79, 70, 229, 0.3)',
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border-color)',
     borderRadius: '8px',
     color: 'var(--text-primary)',
     backdropFilter: 'blur(8px)',
     fontSize: '0.85rem',
+    boxShadow: '0 8px 24px #10263720',
   },
+  labelStyle: { color: 'var(--text-primary)' },
+  itemStyle: { color: 'var(--text-primary)' },
 }
 
 function Charts({ transactions, categories }) {
@@ -61,7 +64,7 @@ function Charts({ transactions, categories }) {
       return acc
     }, {})
 
-  // Each slice carries the colour assigned in the category manager
+  // Keep chart slices consistent with the colors saved in Categories.
   const pieData = Object.entries(expenseByCategory).map(([name, value], index) => ({
     name,
     value,
@@ -110,7 +113,7 @@ function Charts({ transactions, categories }) {
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="var(--bg-card)" strokeWidth={2} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -119,7 +122,8 @@ function Charts({ transactions, categories }) {
                   />
                   <Legend
                     iconSize={10}
-                    wrapperStyle={{ fontSize: '0.8rem' }}
+                    wrapperStyle={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}
+                    formatter={value => <span style={{ color: 'var(--text-secondary)' }}>{value}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -142,17 +146,21 @@ function Charts({ transactions, categories }) {
                     stroke="var(--border-color)"
                   />
                   <XAxis
+                    axisLine={false}
+                    tickLine={false}
                     dataKey="month"
                     tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
                   />
                   <YAxis
+                    axisLine={false}
+                    tickLine={false}
                     tickFormatter={formatShortAmount}
                     tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
                     width={65}
                   />
                   <Tooltip
                     formatter={(value) => formatFullAmount(value)}
-                    cursor={{ fill: 'rgba(79, 70, 229, 0.08)' }}
+                    cursor={{ fill: 'var(--accent-soft)' }}
                     {...tooltipStyle}
                   />
                   <Legend
@@ -162,13 +170,13 @@ function Charts({ transactions, categories }) {
                   <Bar
                     dataKey="income"
                     name="Income"
-                    fill="#16a34a"
+                    fill="#63a69b"
                     radius={[4, 4, 0, 0]}
                   />
                   <Bar
                     dataKey="expenses"
                     name="Expenses"
-                    fill="#dc2626"
+                    fill="#c28a73"
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>

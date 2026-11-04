@@ -1,7 +1,7 @@
 import CategoryIcon from './CategoryIcon'
 import { findCategory } from '../hooks/useCategories'
 
-function TransactionItem({ transaction, onDelete, onEdit, categories }) {
+function TransactionItem({ transaction, onDelete, onEdit, categories, accounts = [] }) {
   const formatAmount = (num) => {
     return num.toLocaleString('en-US', {
       minimumFractionDigits: 2,
@@ -17,7 +17,7 @@ function TransactionItem({ transaction, onDelete, onEdit, categories }) {
         <CategoryIcon category={category} size={38} radius={10} />
         <div className="transaction-info">
           <p className="description">{transaction.description || transaction.category}</p>
-          <p className="category">{transaction.category}</p>
+          <p className="category">{transaction.category} · {accounts.find(a => a.id === (transaction.accountId || 'unassigned'))?.name || 'Unassigned'}</p>
           <p className="date">{transaction.date}</p>
         </div>
       </div>

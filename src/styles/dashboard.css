@@ -1,0 +1,86 @@
+.dashboard-shell { --dashboard-gap:1.25rem; }
+#root { max-width:1440px; padding:1rem 2rem 3rem; }
+.dashboard-shell .dashboard-intro { margin-bottom:1.75rem; }
+.dashboard-eyebrow { letter-spacing:.15em; font-size:.65rem !important; font-weight:600; margin-bottom:.5rem; }
+.bento-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:var(--dashboard-gap); align-items:start; }
+.bento-slot { min-width:0; }
+.accounts-panel .bill-editor { display:flex; flex-wrap:wrap; align-items:center; column-gap:.75rem; row-gap:1.25rem; margin-top:1.5rem; padding-top:1.5rem; }
+.accounts-panel .bill-editor>.form-group,.accounts-panel .bill-editor>p { flex-basis:100%; min-width:0; margin:0; }
+.accounts-panel .bill-editor>.form-group label { margin-bottom:0; }
+.accounts-panel .bill-editor>.form-group label>input,.accounts-panel .bill-editor>.form-group label>select { display:block; margin-top:.5rem; }
+.accounts-panel .bill-editor .budget-usage-note { margin-top:.5rem; }
+.accounts-panel .bill-editor>.form-group>.account-color-options { margin-top:.65rem; gap:.75rem; }
+.accounts-panel .bill-editor>.export-btn { padding:.75rem 1rem; }
+.accounts-panel .bill-editor>.primary-action { padding:.8rem 1.1rem; }
+.accounts-panel .transfer-heading { margin-top:2rem; }
+.bento-snapshot { grid-column:1 / -1; }
+.snapshot-grid { display:grid; grid-template-columns:1.7fr repeat(3,minmax(0,1fr)); gap:1rem; }
+.snapshot-tile { position:relative; isolation:isolate; overflow:hidden; display:flex; flex-direction:column; justify-content:center; gap:.75rem; min-width:0; min-height:155px; padding:1.35rem; border:1px solid var(--border-color); border-radius:20px; background:var(--bg-card); }
+.snapshot-label { font-size:.65rem; font-weight:600; letter-spacing:.1em; color:var(--text-secondary); }
+.snapshot-tile>strong { font-size:clamp(1.2rem,2vw,1.8rem); letter-spacing:-.035em; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.snapshot-tile>p { font-size:.75rem; color:var(--text-secondary); }
+.snapshot-balance { background:linear-gradient(115deg,#1c5969,#358879); color:#fff; border-color:transparent; }
+.snapshot-balance .snapshot-label,.snapshot-balance>p { color:#e1f3ed; }
+.snapshot-balance>strong { font-size:clamp(1.7rem,2.5vw,2.3rem); }
+.snapshot-decoration { position:absolute; right:-45px; bottom:-85px; width:220px; height:180px; border:1px solid #ffffff25; border-radius:40%; transform:rotate(-30deg); z-index:-1; box-shadow:0 0 0 24px #ffffff06,0 0 0 48px #ffffff04; }
+.bento-period { grid-column:span 4; align-self:stretch; }
+.bento-summary { grid-column:span 8; align-self:stretch; }
+.bento-accounts { grid-column:span 6; }
+.bento-bills { grid-column:1 / -1; }
+.bento-charts { grid-column:span 8; }
+.bento-budgets { grid-column:span 4; }
+.bento-transactions { grid-column:span 6; border:1px solid var(--border-color); border-radius:20px; background:var(--bg-card); }
+.bento-backup,.bento-insights { grid-column:1 / -1; }
+.activity-toolbar { padding:1.5rem 1.5rem 0; display:flex; gap:1rem; flex-wrap:wrap; justify-content:space-between; }
+.activity-toolbar h2 { margin:0; }
+.activity-month-controls { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
+.activity-month-controls>select { background:var(--bg-page); color:var(--text-primary); border:1px solid var(--border-color); border-radius:8px; padding:.65rem; font-size:.8rem; }
+.bento-transactions .transaction-list { border:0; box-shadow:none; background:transparent; }
+.bento-transactions .transaction-item { gap:.75rem; flex-wrap:wrap; }
+.bento-transactions .transaction-main { min-width:0; flex:1; }
+.bento-transactions .transaction-info .description { overflow-wrap:anywhere; }
+.bento-transactions .transaction-actions { margin-left:0; }
+.bento-insights { border:1px solid var(--border-color); border-radius:20px; background:var(--bg-card); padding:1.5rem; }
+.bento-insights>summary { cursor:pointer; font-weight:600; }
+.bento-insights>summary>span { font-weight:400; font-size:.8rem; color:var(--text-secondary); margin-left:.75rem; }
+.insights-grid { display:grid; grid-template-columns:2fr 1fr; gap:1.25rem; padding-top:1.5rem; }
+.insights-grid>section { min-width:0; }
+.insights-grid .chart-card { box-shadow:none; border:0; }
+.bento-transactions .filter-settings { display:flex; }
+.bento-slot :is(.period-filter,.summary,.charts-container,.bills-panel,.transaction-list,.budget-status,.data-backup) { margin:0; }
+.bento-slot :is(.period-filter,.bills-panel,.transaction-list,.budget-status,.data-backup) { padding:1.5rem; border-radius:20px; }
+.bento-slot h2 { font-size:1rem; letter-spacing:-.02em; }
+.bento-slot .period-filter { height:100%; }
+.bento-slot .period-type-selector { margin-bottom:0; gap:.45rem; }
+.bento-slot .period-inputs:not(:empty) { margin-top:1rem; }
+.bento-slot .period-input-group { min-width:110px; }
+.bento-summary .summary { height:100%; display:flex; flex-direction:column; }
+.bento-summary h2 { margin-bottom:.75rem; }
+.bento-summary .summary-cards { flex:1; gap:.9rem; }
+.bento-summary .card { min-width:0; display:flex; flex-direction:column; justify-content:center; min-height:130px; border-radius:18px; padding:1.3rem; }
+.bento-summary .card .amount { font-size:clamp(1.15rem,2vw,1.8rem); }
+.bento-accounts .account-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.bento-accounts .account-colored-card { min-width:0; min-height:190px; }
+.bento-accounts .account-balance { font-size:clamp(1.2rem,1.8vw,1.6rem); }
+.bento-accounts .export-buttons { margin-top:1rem; flex-wrap:wrap; }
+.bento-bills .bill-row { align-items:flex-start; }
+.bento-bills .budget-amount-actions { justify-content:flex-start; font-size:.85rem; gap:.5rem; }
+.bento-bills .bill-month { flex-wrap:wrap; }
+.bento-budgets .budget-status-header { align-items:flex-start; }
+.bento-charts .charts-container { padding:1.5rem; border:1px solid var(--border-color); border-radius:20px; background:var(--bg-card); box-shadow:var(--shadow); }
+.bento-charts .chart-card { padding:.75rem 0 0; box-shadow:none; border:0; border-radius:0; }
+.bento-charts .chart-card h3 { font-size:.8rem; }
+.bento-charts .charts-grid { gap:1.5rem; }
+.dashboard-empty { border:1px solid var(--border-color); border-radius:20px; background:var(--bg-card); padding:1.5rem; min-height:170px; }
+.dashboard-empty p { color:var(--text-secondary); font-size:.85rem; line-height:1.7; }
+.bento-backup .data-backup { background:transparent; box-shadow:none; }
+.bento-backup .export-buttons { flex-wrap:wrap; }
+.bento-slot .transaction-list-header { flex-wrap:wrap; gap:1rem; }
+.bento-slot .budget-month { margin-bottom:1rem; }
+@media(min-width:1101px) { .bento-transactions .filter-settings { display:grid; grid-template-columns:2fr 1fr 1fr auto; align-items:end; } }
+@media(max-width:1100px) { .bento-period { grid-column:span 5; } .bento-summary { grid-column:span 7; } .bento-summary .summary-cards { grid-template-columns:1fr; gap:.6rem; } .bento-summary .card { min-height:0; padding:.8rem 1.1rem; flex-direction:row; align-items:center; justify-content:space-between; gap:.6rem; } .bento-summary .card .label { margin:0; } .bento-accounts,.bento-bills,.bento-charts,.bento-budgets { grid-column:span 6; } .bento-charts .charts-grid { grid-template-columns:1fr; } }
+@media(max-width:760px) { #root { padding:.75rem 1rem 2rem; } .dashboard-shell { --dashboard-gap:1rem; } .bento-grid { grid-template-columns:minmax(0,1fr); } .bento-slot { grid-column:1 / -1; } .bento-summary .summary-cards { grid-template-columns:repeat(3,minmax(0,1fr)); } .bento-summary .card { flex-direction:column; align-items:flex-start; padding:1rem; } .bento-summary .card .amount { font-size:1.05rem; } .bento-slot :is(.period-filter,.bills-panel,.transaction-list,.budget-status,.data-backup) { padding:1.2rem; } .dashboard-shell .dashboard-intro { margin-bottom:1.3rem; } }
+@media(max-width:420px) { .bento-accounts .account-grid { grid-template-columns:minmax(0,1fr); } .bento-summary .summary-cards { grid-template-columns:minmax(0,1fr); } .bento-summary .card { flex-direction:row; align-items:center; } .bento-summary .card .amount { font-size:1.3rem; } }
+@media(max-width:1100px) { .snapshot-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .bento-bills { grid-column:1 / -1; } .insights-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:760px) { .bento-accounts,.bento-transactions,.bento-bills { grid-column:1 / -1; } .insights-grid .charts-grid { grid-template-columns:minmax(0,1fr); } .activity-toolbar { padding:1.2rem 1.2rem 0; } }
+@media(max-width:420px) { .snapshot-grid { grid-template-columns:minmax(0,1fr); } .snapshot-tile { min-height:115px; } .bento-insights>summary>span { display:block; margin:.5rem 0 0; } }

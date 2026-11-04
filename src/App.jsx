@@ -1,14 +1,20 @@
 import { useState, useEffect, useCallback } from 'react'
-import Summary from './components/Summary'
+import DashboardSnapshot from './components/DashboardSnapshot'
 import TransactionList from './components/TransactionList'
 import Charts from './components/Charts'
-import PeriodFilter from './components/PeriodFilter'
 import Toast from './components/Toast'
 import ConfirmDialog from './components/ConfirmDialog'
 import BudgetStatus from './components/BudgetStatus'
 import Sidebar from './components/Sidebar'
 import DataBackup from './components/DataBackup'
-import { filterByPeriod } from './utils/filterByPeriod'
+import Bills from './components/Bills'
+import Accounts from './components/Accounts'
+import DashboardLayout from './components/DashboardLayout'
+import { useStoredState } from './hooks/useStoredState'
+import { UNASSIGNED_ACCOUNT } from './utils/accounts'
+import { applyRecurring } from './utils/recurring'
+import PeriodDatePicker from './components/PeriodDatePicker'
+import { localMonth } from './utils/bills'
 import { sortTransactions } from './utils/sortTransactions'
 import { useToast } from './hooks/useToast'
 import {
@@ -20,6 +26,8 @@ import {
 import './App.css'
 import './styles/categories.css'
 import './styles/refined.css'
+import './styles/dashboard.css'
+import './styles/controls.css'
 
 // Get current month in YYYY-MM format
 function getCurrentMonth() {
@@ -27,10 +35,15 @@ function getCurrentMonth() {
 }
 
 function App() {
+  const [accounts, setAccounts] = useStoredState('accounts', [UNASSIGNED_ACCOUNT])
+  const [transfers, setTransfers] = useStoredState('transfers', [])
+  const [initialRecurring] = useState(() => applyRecurring(JSON.parse(localStorage.getItem('transactions') || '[]'), JSON.parse(localStorage.getItem('recurring') || '[]')))
+  const [schedules, setSchedules] = useState(initialRecurring.schedules)
+  useEffect(() => { localStorage.setItem('recurring', JSON.stringify(schedules)) }, [schedules])
+  const [bills, setBills] = useStoredState('bills', [])
   // Load transactions from localStorage or start with empty array
   const [transactions, setTransactions] = useState(() => {
-    const saved = localStorage.getItem('transactions')
-    return saved ? JSON.parse(saved) : []
+    return initialRecurring.transactions
   })
 
   // Load dark mode preference from localStorage or default to false
@@ -53,8 +66,6 @@ function App() {
 
   // Sidebar open/close state
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [payCategory, setPayCategory] = useState(null)
-  const [payAmount, setPayAmount] = useState(0)
 
   // Filter state for transaction list (search, type, category)
   const [filters, setFilters] = useState({
@@ -63,11 +74,7 @@ function App() {
     category: '',
   })
 
-  // Load period filter preference from localStorage or default to all time
-  const [period, setPeriod] = useState(() => {
-    const saved = localStorage.getItem('period')
-    return saved ? JSON.parse(saved) : { type: 'all' }
-  })
+  const [activityMonth, setActivityMonth] = useStoredState('activityMonth', localMonth())
 
   // Sort state for transaction list (default: newest first)
   const [sortBy, setSortBy] = useState('date-desc')
@@ -80,6 +87,24 @@ function App() {
 
   // Toast notification system
   const { toasts, addToast, removeToast } = useToast()
+  function updateSchedules(next) {
+    const current = applyRecurring(transactions, schedules)
+    const result = applyRecurring(current.transactions, next.map(rule => ({ ...rule, processedThrough: current.schedules.find(r => r.id === rule.id)?.processedThrough || rule.processedThrough })))
+    setTransactions(result.transactions)
+    setSchedules(result.schedules)
+  }
+  useEffect(() => {
+    const catchUp = () => {
+      const result = applyRecurring(transactions, schedules)
+      if (JSON.stringify(result.schedules) !== JSON.stringify(schedules) || result.transactions.length !== transactions.length) {
+        setTransactions(result.transactions)
+        setSchedules(result.schedules)
+      }
+    }
+    window.addEventListener('focus', catchUp)
+    const interval = window.setInterval(catchUp, 60000)
+    return () => { window.removeEventListener('focus', catchUp); window.clearInterval(interval) }
+  }, [transactions, schedules])
 
   // Apply dark or light theme to the document
   useEffect(() => {
@@ -196,11 +221,6 @@ function App() {
     setFilters((prev) => ({ ...prev, ...newFilters }))
   }
 
-  // Update period filter and save preference to localStorage
-  function handlePeriodChange(newPeriod) {
-    setPeriod(newPeriod)
-    localStorage.setItem('period', JSON.stringify(newPeriod))
-  }
 
   // Update budgets and show toast
   function handleBudgetUpdate(newBudgets) {
@@ -228,6 +248,8 @@ function App() {
       [type]: prev[type].map((c) => (c.id === id ? { ...c, ...draft } : c)),
     }))
     if (previous && previous.name !== draft.name) {
+      setSchedules(prev => prev.map(r => r.type === type && r.category === previous.name ? { ...r, category: draft.name } : r))
+      if (type === 'expense') setBills(prev => prev.map(b => b.category === previous.name ? { ...b, category: draft.name } : b))
       // Re-tag every transaction that used the old name
       setTransactions((prev) =>
         prev.map((t) =>
@@ -258,6 +280,8 @@ function App() {
 
   // Delete a category — its transactions fall back to "Other"
   function handleCategoryDelete(type, category) {
+    setSchedules(prev => prev.map(r => r.type === type && r.category === category.name ? { ...r, category: FALLBACK_NAME } : r))
+    if (type === 'expense') setBills(prev => prev.map(b => b.category === category.name ? { ...b, category: FALLBACK_NAME } : b))
 
     setCategories((prev) => ({
       ...prev,    
@@ -293,11 +317,11 @@ function App() {
   }, [removeToast])
 
   // Transactions filtered by period (used by Summary and Charts)
-  const periodTransactions = filterByPeriod(transactions, period)
+  const periodTransactions = activityMonth === 'all' ? transactions : transactions.filter(t => t.date.slice(0, 7) === activityMonth)
 
   // Transactions filtered by search/type/category then sorted
   const filteredTransactions = sortTransactions(
-    transactions.filter((t) => {
+    periodTransactions.filter((t) => {
       const matchesSearch =
         t.description.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
         t.category.toLowerCase().includes(filters.searchQuery.toLowerCase())
@@ -333,11 +357,14 @@ function App() {
 
       {/* Sidebar — Add Transaction + Budgets + Categories */}
       <Sidebar
-        payCategory={payCategory}
-        payAmount={payCategory ? payAmount : undefined}
+        accounts={accounts}
+        schedules={schedules}
+        onSchedulesChange={updateSchedules}
+        bills={bills}
+        onBillsChange={setBills}
         isOpen={sidebarOpen}
-        onClose={() => { setSidebarOpen(false); setPayCategory(null) }}
-        onAdd={(t) => { addTransaction(payCategory ? { ...t, budgetPayment: true } : t); setSidebarOpen(false); setPayCategory(null) }}
+        onClose={() => setSidebarOpen(false)}
+        onAdd={(t) => { addTransaction(t); setSidebarOpen(false) }}
         onUpdate={updateTransaction}
         editingTransaction={editingTransaction}
         onCancelEdit={handleCancelEdit}
@@ -365,40 +392,23 @@ function App() {
       </div>
 
       {/* Main content */}
-      <div className="main-content">
-        <div className="dashboard-intro"><div><h2>Your financial overview</h2><p>A clear view of your money, all in one place.</p></div><button className="primary-action" onClick={() => { setEditingTransaction(null); setSidebarOpen(true) }}>+ Manage finances</button></div>
-
-        {/* Period filter */}
-        <PeriodFilter
-          period={period}
-          onChange={handlePeriodChange}
-          transactions={transactions}
-        />
-
-        {/* Summary cards */}
-        <Summary transactions={periodTransactions} />
-
-        {/* Budget status */}
+      <DashboardLayout
+        onManage={() => { setEditingTransaction(null); setSidebarOpen(true) }}
+        snapshot={<DashboardSnapshot accounts={accounts} transactions={transactions} transfers={transfers} bills={bills} />}
+        monthControl={<div className="activity-toolbar"><div><p className="dashboard-eyebrow">ACCOUNT ACTIVITY</p><h2>Recent transactions</h2></div><div className="activity-month-controls"><select aria-label="Activity period" value={activityMonth === 'all' ? 'all' : activityMonth === localMonth() ? 'current' : 'custom'} onChange={e => setActivityMonth(e.target.value === 'all' ? 'all' : localMonth())}><option value="current">This month</option><option value="custom">Choose month</option><option value="all">All time</option></select>{activityMonth !== 'all' && <PeriodDatePicker type="month" value={activityMonth} onChange={e => setActivityMonth(e.target.value)} />}</div></div>}
+        accounts={<Accounts accounts={accounts} transfers={transfers} transactions={transactions} onAccountsChange={setAccounts} onTransfersChange={setTransfers} />}
+        bills={<Bills accounts={accounts} bills={bills} transactions={transactions} categories={categories} onChange={setBills} onPayment={addTransaction} />}
+        budgets={Object.values(budgets).some(value => value !== undefined) ?
         <BudgetStatus
-          onPay={(category, remaining) => { setPayCategory(category); setPayAmount(remaining); setEditingTransaction(null); setSidebarOpen(true) }}
           transactions={transactions}
           budgets={budgets}
           categories={categories}
         />
-
-        {/* Overview charts */}
-        <Charts transactions={periodTransactions} categories={categories} />
-
-        <DataBackup transactions={transactions} budgets={budgets} categories={categories} onRestore={(backup) => {
-          setTransactions(backup.transactions)
-          if (backup.budgets) setBudgets(backup.budgets)
-          if (backup.categories) setCategories(backup.categories)
-          setFilters({ searchQuery: '', type: '', category: '' })
-          setEditingTransaction(null)
-          addToast('Backup restored successfully!')
-        }} />
-        {/* Transaction list with filter inside */}
+        : <div className="dashboard-empty"><h2>Spending budgets</h2><p>Set monthly category limits in Manage finances to track your spending here.</p></div>}
+        charts={periodTransactions.length ? <Charts transactions={periodTransactions} categories={categories} /> : <div className="dashboard-empty"><h2>Overview</h2><p>Your income and expense charts will appear here once you add transactions for this period.</p></div>}
+        transactions={
         <TransactionList
+          accounts={accounts}
           transactions={filteredTransactions}
           allTransactions={transactions}
           onDelete={handleDeleteClick}
@@ -410,8 +420,21 @@ function App() {
           allCategories={allCategories}
           categories={categories}
         />
-
-      </div>
+        }
+        backup={
+        <DataBackup accounts={accounts} transfers={transfers} transactions={transactions} budgets={budgets} categories={categories} bills={bills} schedules={schedules} onRestore={(backup) => {
+          if (backup.accounts) { setAccounts(backup.accounts); setTransfers(backup.transfers) }
+          if (backup.schedules) setSchedules(backup.schedules)
+          if (backup.bills) setBills(backup.bills)
+          setTransactions(backup.transactions)
+          if (backup.budgets) setBudgets(backup.budgets)
+          if (backup.categories) setCategories(backup.categories)
+          setFilters({ searchQuery: '', type: '', category: '' })
+          setEditingTransaction(null)
+          addToast('Backup restored successfully!')
+        }} />
+        }
+      />
     </div>
   )
 }

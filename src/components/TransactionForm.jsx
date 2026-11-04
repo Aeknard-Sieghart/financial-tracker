@@ -16,6 +16,7 @@ function TransactionForm({
   editingTransaction,
   onCancelEdit,
   categories,
+  accounts = [],
   initialCategory,
   initialAmount,
 }) {
@@ -31,6 +32,7 @@ function TransactionForm({
         category: editingTransaction.category,
         description: editingTransaction.description,
         date: editingTransaction.date,
+        accountId: editingTransaction.accountId || 'unassigned',
       }
     }
     const firstExpense = (categories.expense || [])[0]
@@ -40,6 +42,7 @@ function TransactionForm({
       category: initialCategory || (firstExpense ? firstExpense.name : 'Other'),
       description: '',
       date: getTodayDate(),
+      accountId: 'unassigned',
     }
   })
 
@@ -98,6 +101,7 @@ function TransactionForm({
       category: formData.category,
       description: formData.description,
       date: formData.date,
+      accountId: formData.accountId,
     }
 
     if (editingTransaction) {
@@ -122,6 +126,7 @@ function TransactionForm({
   return (
     <form onSubmit={handleSubmit} className="transaction-form">
       <h2>{editingTransaction ? 'Edit Transaction' : 'Add Transaction'}</h2>
+      <div className="form-group"><label>Account<select value={formData.accountId} onChange={e => setFormData({ ...formData, accountId: e.target.value })}>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label></div>
 
       <div className="form-group">
         <label>Type</label>

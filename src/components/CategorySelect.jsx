@@ -40,7 +40,7 @@ function CategorySelect({ options, value, onChange }) {
       >
         <CategoryIcon category={selected} size={26} radius={7} strokeWidth={1.8} />
         <span className="category-select-name">{selected.name}</span>
-        <span className={`category-select-chevron ${isOpen ? 'open' : ''}`}>▾</span>
+        <span className={`category-select-chevron ${isOpen ? 'open' : ''}`} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg></span>
       </button>
 
       {isOpen && (

@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import { validSchedule } from '../utils/recurring'
+import { validAccount, validTransfer } from '../utils/accounts'
 
 function validateBackup(data) {
   const backup = Array.isArray(data) ? { transactions: data } : data
@@ -15,16 +17,22 @@ function validateBackup(data) {
       if (!Array.isArray(list) || !list.some(c => c?.name === 'Other') || list.some(c => !c || typeof c.id !== 'string' || typeof c.name !== 'string' || !c.name.trim() || typeof c.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(c.color) || typeof c.icon !== 'string') || new Set(list.map(c => c.id)).size !== list.length || new Set(list.map(c => c.name)).size !== list.length) throw new Error('The backup contains invalid categories.')
     }
   }
-  if (backup.version !== undefined && backup.version !== 1) throw new Error('This backup version is not supported.')
+  if (backup.bills !== undefined && (!Array.isArray(backup.bills) || backup.bills.some(b => !b || typeof b.id !== 'string' || !b.id || typeof b.name !== 'string' || !b.name.trim() || typeof b.category !== 'string' || typeof b.amount !== 'number' || !Number.isFinite(b.amount) || b.amount <= 0 || !Number.isInteger(b.dueDay) || b.dueDay < 1 || b.dueDay > 31 || !/^\d{4}-(0[1-9]|1[0-2])$/.test(b.startMonth)) || new Set(backup.bills.map(b => b.id)).size !== backup.bills.length)) throw new Error('The backup contains invalid bills.')
+  if (backup.schedules !== undefined && (!Array.isArray(backup.schedules) || backup.schedules.some(r => !validSchedule(r)) || new Set(backup.schedules.map(r => r.id)).size !== backup.schedules.length)) throw new Error('The backup contains invalid recurring schedules.')
+  if (backup.accounts !== undefined) {
+    if (!Array.isArray(backup.accounts) || backup.accounts.some(a => !validAccount(a)) || !backup.accounts.some(a => a.id === 'unassigned') || new Set(backup.accounts.map(a => a.id)).size !== backup.accounts.length || !Array.isArray(backup.transfers) || backup.transfers.some(t => !validTransfer(t, backup.accounts)) || new Set(backup.transfers.map(t => t.id)).size !== backup.transfers.length) throw new Error('The backup contains invalid accounts or transfers.')
+    if (backup.transactions.some(t => t.accountId && !backup.accounts.some(a => a.id === t.accountId)) || backup.schedules?.some(r => r.accountId && !backup.accounts.some(a => a.id === r.accountId))) throw new Error('The backup references an unknown account.')
+  } else if (backup.transfers !== undefined) throw new Error('Transfers require accounts in the backup.')
+  if (backup.version !== undefined && ![1, 2, 3, 4].includes(backup.version)) throw new Error('This backup version is not supported.')
   return backup
 }
 
-export default function DataBackup({ transactions, budgets, categories, onRestore }) {
+export default function DataBackup({ transactions, budgets, categories, bills, schedules, accounts, transfers, onRestore }) {
   const input = useRef(null)
   const [pending, setPending] = useState(null)
   const [error, setError] = useState('')
   function download() {
-    const data = { version: 1, exportedAt: new Date().toISOString(), transactions, budgets, categories }
+    const data = { version: 4, exportedAt: new Date().toISOString(), transactions, budgets, categories, bills, schedules, accounts, transfers }
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
     const link = document.createElement('a')
     link.href = url
@@ -44,7 +52,7 @@ export default function DataBackup({ transactions, budgets, categories, onRestor
     } catch (err) { setError(err instanceof SyntaxError ? 'This file is not valid JSON.' : err.message) }
   }
   return <section className="data-backup">
-    <div><h2>Backup & restore</h2><p>Keep a copy of your transactions, budgets, and categories.</p></div>
+    <div><h2>Backup & restore</h2><p>Keep a copy of your transactions, bills, budgets, and categories.</p></div>
     <div className="export-buttons"><button className="export-btn" onClick={download}>Export data</button><button className="export-btn" onClick={() => input.current.click()}>Import data</button></div>
     <input ref={input} type="file" accept=".json,application/json" hidden onChange={readFile} />
     {error && <p role="alert">{error}</p>}

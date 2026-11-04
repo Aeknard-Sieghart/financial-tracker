@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 function Summary({ transactions }) {
   const totalIncome = transactions
     .filter((t) => t.type === "income")

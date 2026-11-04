@@ -36,6 +36,7 @@ function exportJSON(transactions) {
 
 function TransactionList({
   transactions,
+  accounts,
   allTransactions,
   onDelete,
   onEdit,
@@ -93,6 +94,7 @@ function TransactionList({
       ) : (
         transactions.map((transaction) => (
           <TransactionItem
+            accounts={accounts}
             key={transaction.id}
             transaction={transaction}
             onDelete={onDelete}
