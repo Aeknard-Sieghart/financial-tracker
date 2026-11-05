@@ -1,3 +1,4 @@
+import ActionButton from './ActionButton'
 import { useState } from 'react'
 
 function TransactionFilter({
@@ -22,7 +23,7 @@ function TransactionFilter({
         onClick={() => setIsOpen((prev) => !prev)}
       >
         <span className="filter-toggle-left">
-          <span className="filter-toggle-label">Filter Transactions</span>
+          <span className="filter-toggle-label">Filter activity</span>
           {/* Show a dot indicator when filters are active */}
           {hasActiveFilters && (
             <span className="filter-active-dot" title="Filters active" />
@@ -57,6 +58,8 @@ function TransactionFilter({
               <option value="">All Types</option>
               <option value="income">Income</option>
               <option value="expense">Expense</option>
+              <option value="transfer">Transfer</option>
+              <option value="debt-payment">Debt repayment (principal)</option>
             </select>
           </div>
 
@@ -75,12 +78,12 @@ function TransactionFilter({
           </div>
 
           {/* Clear all filters */}
-          <button
+          <ActionButton icon="close"
             className="clear-filters-btn"
             onClick={() => onFilterChange({ searchQuery: '', type: '', category: '' })}
           >
             Clear Filters
-          </button>
+          </ActionButton>
 
         </div>
       )}

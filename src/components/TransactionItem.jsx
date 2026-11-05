@@ -1,3 +1,4 @@
+import ActionButton from './ActionButton'
 import CategoryIcon from './CategoryIcon'
 import { findCategory } from '../hooks/useCategories'
 
@@ -27,18 +28,18 @@ function TransactionItem({ transaction, onDelete, onEdit, categories, accounts =
         </span>
       </div>
       <div className="transaction-actions">
-        <button
+        {!transaction.debtPaymentId && <ActionButton icon="edit"
           className="edit-btn"
           onClick={() => onEdit(transaction)}
         >
           Edit
-        </button>
-        <button
+        </ActionButton>}
+        <ActionButton icon="remove"
           className="delete-btn"
           onClick={() => onDelete(transaction.id)}
         >
           Delete
-        </button>
+        </ActionButton>
       </div>
     </div>
   )

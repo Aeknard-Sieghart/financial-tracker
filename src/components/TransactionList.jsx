@@ -1,4 +1,6 @@
+import ActionButton from './ActionButton'
 import TransactionItem from './TransactionItem'
+import TransferActivity from './TransferActivity'
 import SortControls from './SortControls'
 import TransactionFilter from './TransactionFilter'
 
@@ -54,24 +56,24 @@ function TransactionList({
 
       {/* Section header */}
       <div className="transaction-list-header">
-        <h2>Transactions ({transactions.length})</h2>
+        <h2>Activity ({transactions.length})</h2>
         {/* Export buttons */}
         {allTransactions.length > 0 && (
           <div className="export-buttons">
-            <button
+            <ActionButton icon="download"
               className="export-btn"
               onClick={() => exportCSV(allTransactions)}
               title="Download all transactions as CSV"
             >
-              ⬇ CSV
-            </button>
-            <button
+              CSV
+            </ActionButton>
+            <ActionButton icon="download"
               className="export-btn"
               onClick={() => exportJSON(allTransactions)}
               title="Download all transactions as JSON"
             >
-              ⬇ JSON
-            </button>
+              JSON
+            </ActionButton>
           </div>
         )}
       </div>
@@ -90,9 +92,9 @@ function TransactionList({
 
       {/* Empty state or transaction items */}
       {transactions.length === 0 ? (
-        <p className="empty-message">No transactions found</p>
+        <p className="empty-message">No activity found for these filters</p>
       ) : (
-        transactions.map((transaction) => (
+        transactions.map((transaction) => transaction.type === 'transfer' ? <TransferActivity key={`transfer-${transaction.id}`} transfer={transaction} accounts={accounts} onDelete={onDelete} /> : (
           <TransactionItem
             accounts={accounts}
             key={transaction.id}

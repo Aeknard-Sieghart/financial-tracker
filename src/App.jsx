@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import DashboardSnapshot from './components/DashboardSnapshot'
+import ThemeControl from './components/ThemeControl'
+import LineInsights from './components/LineInsights'
+import SavingsGoals from './components/SavingsGoals'
+import Debts from './components/Debts'
+import { debtReminders } from './utils/debts'
+import { providerFor } from './constants/billProviders'
+import BillReminders from './components/BillReminders'
+import { billReminders } from './utils/billReminders'
+import { useToday } from './hooks/useToday'
 import TransactionList from './components/TransactionList'
 import Charts from './components/Charts'
 import Toast from './components/Toast'
@@ -15,7 +24,7 @@ import { UNASSIGNED_ACCOUNT } from './utils/accounts'
 import { applyRecurring } from './utils/recurring'
 import PeriodDatePicker from './components/PeriodDatePicker'
 import { localMonth } from './utils/bills'
-import { sortTransactions } from './utils/sortTransactions'
+import { activityEntries } from './utils/activity'
 import { useToast } from './hooks/useToast'
 import {
   useCategories,
@@ -35,7 +44,11 @@ function getCurrentMonth() {
 }
 
 function App() {
+  const today = useToday()
+  const [reminderMonth, setReminderMonth] = useState(() => ({ month: localMonth(), version: 0 }))
   const [accounts, setAccounts] = useStoredState('accounts', [UNASSIGNED_ACCOUNT])
+  const [goals, setGoals] = useStoredState('savingsGoals', [])
+  const [debts, setDebts] = useStoredState('debts', [])
   const [transfers, setTransfers] = useStoredState('transfers', [])
   const [initialRecurring] = useState(() => applyRecurring(JSON.parse(localStorage.getItem('transactions') || '[]'), JSON.parse(localStorage.getItem('recurring') || '[]')))
   const [schedules, setSchedules] = useState(initialRecurring.schedules)
@@ -181,12 +194,25 @@ function App() {
   }
 
   // Show confirm dialog before deleting
-  function handleDeleteClick(id) {
-    setConfirmDialog({ isOpen: true, transactionId: id })
+  function handleDeleteClick(id, type = 'transaction') {
+    setConfirmDialog({ isOpen: true, transactionId: id, type })
   }
 
   // Confirmed delete — remove transaction and show toast
   function handleConfirmDelete() {
+    const entry = transactions.find(t => t.id === confirmDialog.transactionId)
+    if (confirmDialog.type !== 'transfer' && entry?.debtPaymentId) {
+      setTransactions(prev => prev.filter(t => t.debtPaymentId !== entry.debtPaymentId))
+      setConfirmDialog({ isOpen: false, transactionId: null })
+      addToast('Repayment reversed. Principal and fee entries removed.', 'warning')
+      return
+    }
+    if (confirmDialog.type === 'transfer') {
+      setTransfers(prev => prev.filter(t => t.id !== confirmDialog.transactionId))
+      setConfirmDialog({ isOpen: false, transactionId: null })
+      addToast('Transfer deleted. Account balances updated.', 'warning')
+      return
+    }
     setTransactions(
       transactions.filter((t) => t.id !== confirmDialog.transactionId)
     )
@@ -318,20 +344,10 @@ function App() {
 
   // Transactions filtered by period (used by Summary and Charts)
   const periodTransactions = activityMonth === 'all' ? transactions : transactions.filter(t => t.date.slice(0, 7) === activityMonth)
+  const reminders = [...billReminders(bills, transactions, new Date(`${today}T12:00:00`)), ...debtReminders(debts, transactions, today)].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
 
   // Transactions filtered by search/type/category then sorted
-  const filteredTransactions = sortTransactions(
-    periodTransactions.filter((t) => {
-      const matchesSearch =
-        t.description.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-        t.category.toLowerCase().includes(filters.searchQuery.toLowerCase())
-      const matchesType = filters.type === '' || t.type === filters.type
-      const matchesCategory =
-        filters.category === '' || t.category === filters.category
-      return matchesSearch && matchesType && matchesCategory
-    }),
-    sortBy
-  )
+  const filteredTransactions = activityEntries(transactions, transfers, accounts, activityMonth, filters, sortBy)
 
   // Filter dropdown options: every defined category, plus any legacy name
   // still attached to a transaction
@@ -339,6 +355,7 @@ function App() {
     ...new Set([
       ...allCategoryNames(categories),
       ...transactions.map((t) => t.category),
+      ...(transfers.length ? ['Transfer'] : []),
     ]),
   ].sort()
 
@@ -350,13 +367,21 @@ function App() {
       {/* Confirm delete dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        message="Are you sure you want to delete this transaction? This cannot be undone."
+        message={confirmDialog.type === 'transfer' ? 'Delete this transfer? Both account balances will be recalculated.' : transactions.find(t => t.id === confirmDialog.transactionId)?.debtPaymentId ? 'Reverse this debt repayment? Both principal and fee entries will be deleted and the debt balance restored.' : 'Are you sure you want to delete this transaction? This cannot be undone.'}
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
 
       {/* Sidebar — Add Transaction + Budgets + Categories */}
       <Sidebar
+        debts={debts}
+        onDebtsChange={setDebts}
+        onDebtRepay={entries => { setTransactions(prev => [...entries, ...prev]); addToast('Repayment recorded.') }}
+        goals={goals}
+        onGoalsChange={setGoals}
+        transfers={transfers}
+        onAccountsChange={setAccounts}
+        onTransfersChange={setTransfers}
         accounts={accounts}
         schedules={schedules}
         onSchedulesChange={updateSchedules}
@@ -382,22 +407,20 @@ function App() {
         <div className="app-header-left">
           <div><p className="brand-eyebrow">PERSONAL FINANCE</p><h1>Financial Tracker</h1></div>
         </div>
-        <button
-          className="theme-toggle"
-          onClick={() => setDarkMode(!darkMode)}
-          title="Toggle dark mode"
-        >
-          {darkMode ? '☀️ Light' : '🌙 Dark'}
-        </button>
+        <ThemeControl darkMode={darkMode} onChange={setDarkMode} />
       </div>
 
       {/* Main content */}
       <DashboardLayout
+        debts={<Debts debts={debts} transactions={transactions} accounts={accounts} transfers={transfers} onChange={setDebts} onRepay={entries => { setTransactions(prev => [...entries, ...prev]); addToast('Repayment recorded.') }} />}
+        goals={<SavingsGoals goals={goals} accounts={accounts} transactions={transactions} transfers={transfers} onChange={setGoals} />}
+        reminders={reminders.length > 0 ? <BillReminders reminders={reminders} today={today} onView={month => setReminderMonth(prev => ({ month, version: prev.version + 1 }))} /> : null}
+        trends={<LineInsights transactions={transactions} accounts={accounts} categories={categories} />}
         onManage={() => { setEditingTransaction(null); setSidebarOpen(true) }}
-        snapshot={<DashboardSnapshot accounts={accounts} transactions={transactions} transfers={transfers} bills={bills} />}
-        monthControl={<div className="activity-toolbar"><div><p className="dashboard-eyebrow">ACCOUNT ACTIVITY</p><h2>Recent transactions</h2></div><div className="activity-month-controls"><select aria-label="Activity period" value={activityMonth === 'all' ? 'all' : activityMonth === localMonth() ? 'current' : 'custom'} onChange={e => setActivityMonth(e.target.value === 'all' ? 'all' : localMonth())}><option value="current">This month</option><option value="custom">Choose month</option><option value="all">All time</option></select>{activityMonth !== 'all' && <PeriodDatePicker type="month" value={activityMonth} onChange={e => setActivityMonth(e.target.value)} />}</div></div>}
-        accounts={<Accounts accounts={accounts} transfers={transfers} transactions={transactions} onAccountsChange={setAccounts} onTransfersChange={setTransfers} />}
-        bills={<Bills accounts={accounts} bills={bills} transactions={transactions} categories={categories} onChange={setBills} onPayment={addTransaction} />}
+        snapshot={<DashboardSnapshot accounts={accounts} transactions={transactions} transfers={transfers} bills={bills} reminders={reminders} />}
+        monthControl={<div className="activity-toolbar"><div><p className="dashboard-eyebrow">ACCOUNT ACTIVITY</p><h2>Recent activity</h2></div><div className="activity-month-controls"><select aria-label="Activity period" value={activityMonth === 'all' ? 'all' : activityMonth === localMonth() ? 'current' : 'custom'} onChange={e => setActivityMonth(e.target.value === 'all' ? 'all' : localMonth())}><option value="current">This month</option><option value="custom">Choose month</option><option value="all">All time</option></select>{activityMonth !== 'all' && <PeriodDatePicker type="month" value={activityMonth} onChange={e => setActivityMonth(e.target.value)} />}</div></div>}
+        accounts={<Accounts accountReferences={[...goals.map(g => g.accountId), ...schedules.map(s => s.accountId)]} accounts={accounts} transfers={transfers} transactions={transactions} onAccountsChange={setAccounts} onTransfersChange={setTransfers} />}
+        bills={<Bills key={reminderMonth.version} initialMonth={reminderMonth.month} accounts={accounts} bills={bills} transactions={transactions} categories={categories} onChange={setBills} onPayment={addTransaction} onMoveToDebt={(bill, state) => { setDebts(prev => [...prev, { id: crypto.randomUUID(), name: bill.name, provider: providerFor(bill)?.id === 'tala' ? 'tala' : 'spaylater', openingPrincipal: state.remaining, dueDate: state.dueDate }]); setBills(prev => prev.filter(b => b.id !== bill.id)); addToast('Moved to Debt. Earlier transactions preserved.') }} />}
         budgets={Object.values(budgets).some(value => value !== undefined) ?
         <BudgetStatus
           transactions={transactions}
@@ -422,7 +445,11 @@ function App() {
         />
         }
         backup={
-        <DataBackup accounts={accounts} transfers={transfers} transactions={transactions} budgets={budgets} categories={categories} bills={bills} schedules={schedules} onRestore={(backup) => {
+        <DataBackup debts={debts} goals={goals} accounts={accounts} transfers={transfers} transactions={transactions} budgets={budgets} categories={categories} bills={bills} schedules={schedules} onRestore={(backup) => {
+          if (backup.debts) setDebts(backup.debts)
+          else if (backup.accounts) setDebts([])
+          if (backup.goals) setGoals(backup.goals)
+          else if (backup.accounts) setGoals([])
           if (backup.accounts) { setAccounts(backup.accounts); setTransfers(backup.transfers) }
           if (backup.schedules) setSchedules(backup.schedules)
           if (backup.bills) setBills(backup.bills)

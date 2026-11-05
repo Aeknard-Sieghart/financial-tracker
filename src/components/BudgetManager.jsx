@@ -1,3 +1,4 @@
+import ActionButton from './ActionButton'
 import { useState } from 'react'
 import CategoryIcon from './CategoryIcon'
 
@@ -107,9 +108,9 @@ function BudgetManager({ budgets, onUpdate, categories }) {
       </div>
 
       {/* Single save button — toast only fires when this is clicked */}
-      <button className="budget-save-btn" onClick={handleSave}>
+      <ActionButton icon="save" className="budget-save-btn" onClick={handleSave}>
         Save Budgets
-      </button>
+      </ActionButton>
     </div>
   )
 }

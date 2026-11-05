@@ -1,3 +1,4 @@
+import ActionButton from './ActionButton'
 function ConfirmDialog({ isOpen, message, onConfirm, onCancel }) {
   // Don't render anything if dialog is not open
   if (!isOpen) return null
@@ -9,12 +10,12 @@ function ConfirmDialog({ isOpen, message, onConfirm, onCancel }) {
       <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
         <p className="dialog-message">{message}</p>
         <div className="dialog-buttons">
-          <button className="dialog-cancel" onClick={onCancel}>
+          <ActionButton icon="close" className="dialog-cancel" onClick={onCancel}>
             Cancel
-          </button>
-          <button className="dialog-confirm" onClick={onConfirm}>
+          </ActionButton>
+          <ActionButton icon="remove" className="dialog-confirm" onClick={onConfirm}>
             Delete
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>

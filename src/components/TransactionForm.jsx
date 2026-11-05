@@ -1,3 +1,4 @@
+import ActionButton from './ActionButton'
 import { useState } from 'react'
 import CategorySelect from './CategorySelect'
 
@@ -126,7 +127,7 @@ function TransactionForm({
   return (
     <form onSubmit={handleSubmit} className="transaction-form">
       <h2>{editingTransaction ? 'Edit Transaction' : 'Add Transaction'}</h2>
-      <div className="form-group"><label>Account<select value={formData.accountId} onChange={e => setFormData({ ...formData, accountId: e.target.value })}>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label></div>
+      <div className="form-group"><label>Account<select value={formData.accountId} onChange={e => setFormData({ ...formData, accountId: e.target.value })}>{accounts.filter(a => !a.archived || a.id === formData.accountId).map(a => <option key={a.id} value={a.id} disabled={a.archived}>{a.name}{a.archived ? ' (archived)' : ''}</option>)}</select></label></div>
 
       <div className="form-group">
         <label>Type</label>
@@ -193,13 +194,13 @@ function TransactionForm({
       </div>
 
       <div className="form-buttons">
-        <button type="submit">
+        <ActionButton icon={editingTransaction ? 'edit' : 'add'} type="submit">
           {editingTransaction ? 'Update Transaction' : 'Add Transaction'}
-        </button>
+        </ActionButton>
         {editingTransaction && (
-          <button type="button" className="cancel-btn" onClick={onCancelEdit}>
+          <ActionButton icon="close" type="button" className="cancel-btn" onClick={onCancelEdit}>
             Cancel
-          </button>
+          </ActionButton>
         )}
       </div>
     </form>

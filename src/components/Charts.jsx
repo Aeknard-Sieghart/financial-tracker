@@ -78,7 +78,7 @@ function Charts({ transactions, categories }) {
     const month = getMonthLabel(t.date)
     if (!acc[month]) acc[month] = { month, income: 0, expenses: 0 }
     if (t.type === 'income') acc[month].income += t.amount
-    else acc[month].expenses += t.amount
+    else if (t.type === 'expense') acc[month].expenses += t.amount
     return acc
   }, {})
 

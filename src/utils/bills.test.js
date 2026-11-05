@@ -1,8 +1,21 @@
 import { describe, it, expect } from 'vitest'
-import { billStatus } from './bills'
+import { billStatus, validBill } from './bills'
 
 const bill = { id: 'wifi', amount: 1399, dueDay: 31 }
 const payment = { type: 'expense', billId: 'wifi', billMonth: '2026-02', amount: 500 }
+it('keeps variable amounts independent and marks unknown months pending', () => {
+  const b = { ...bill, amountType: 'variable', monthlyAmounts: { '2026-02': 900, '2026-03': 1100 } }
+  expect(billStatus(b, [payment], '2026-02').remaining).toBe(400)
+  expect(billStatus(b, [], '2026-03').amount).toBe(1100)
+  expect(billStatus(b, [], '2026-04')).toMatchObject({ pending: true, remaining: null, status: 'Amount pending' })
+  expect(billStatus({ ...b, monthlyAmounts: { '2026-04': 0 } }, [], '2026-04').status).toBe('Paid')
+})
+it('validates legacy fixed bills and variable bill backups', () => {
+  const base = { ...bill, name: 'WiFi', category: 'Utilities', startMonth: '2026-02' }
+  expect(validBill(base)).toBeTruthy()
+  expect(validBill({ ...base, amountType: 'variable', amount: 0, monthlyAmounts: { '2026-02': 800 } })).toBeTruthy()
+  expect(validBill({ ...base, amountType: 'variable', monthlyAmounts: { '2026-13': 10 } })).toBeFalsy()
+})
 describe('monthly bill payments', () => {
   it('clamps the due day to the end of a short month', () => {
     expect(billStatus(bill, [], '2026-02', new Date(2026, 1, 28)).dueDate).toBe('2026-02-28')

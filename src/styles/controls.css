@@ -35,6 +35,44 @@ select:focus-visible { border-color:var(--accent); outline:3px solid var(--accen
 .bill-editor { padding-top:1.5rem; margin-top:1.5rem; }
 .accounts-panel .bill-editor { row-gap:var(--form-field-gap); }
 .account-color-options { gap:.75rem; }
+.account-eye-icon { position:absolute; top:12px; right:56px; width:36px; height:36px; display:grid; place-items:center; border:1px solid currentColor; border-radius:10px; color:inherit; background:#ffffff18; opacity:0; transform:translateY(5px); transition:opacity 180ms ease,transform 180ms ease; }
+.account-colored-card:hover .account-eye-icon,.account-colored-card:focus-within .account-eye-icon { opacity:1; transform:none; }
+.account-eye-icon:hover { background:#ffffff35; }
+.account-colored-card .account-provider { padding-right:84px; }
+.account-colored-card .account-bank-logo { margin-right:86px; max-width:calc(100% - 86px); }
+.account-colored-card .account-bank-wordmark { margin-right:86px; }
+.account-colored-card[draggable='true'] { cursor:grab; }
+.account-colored-card.account-dragging { opacity:.45; cursor:grabbing; }
+.account-archived { opacity:.65; }
+.archived-account-toggle { display:flex; align-items:center; gap:.5rem; color:var(--text-secondary); font-size:.8rem; margin-bottom:1rem; }
+.account-maintenance { width:100%; border-top:1px solid var(--border-color); padding-top:1rem; }
+@media(hover:none),(pointer:coarse) { .account-eye-icon { opacity:1; transform:none; width:44px; height:44px; right:64px; } .account-colored-card .account-bank-logo { margin-right:98px; max-width:calc(100% - 98px); } .account-colored-card .account-provider { padding-right:98px; } }
+@media(prefers-reduced-motion:reduce) { .account-eye-icon { transition:none; transform:none; } }
+.debt-panel .budget-amount-actions { align-items:center; gap:.75rem; }
+.debt-panel .budget-amount-actions>.action-button { align-self:center; min-height:38px; margin:0; padding:.55rem .85rem; line-height:1.4; border-radius:8px; }
+.theme-control { position:relative; isolation:isolate; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); padding:4px; border:1px solid var(--border-color); border-radius:12px; background:var(--bg-page); flex-shrink:0; }
+.theme-control-indicator { position:absolute; z-index:-1; top:4px; bottom:4px; left:4px; width:calc((100% - 8px) / 2); border-radius:8px; background:var(--bg-card); box-shadow:0 1px 5px #10263718; border:1px solid var(--border-color); transition:transform 200ms ease; }
+.theme-control-indicator.is-dark { transform:translateX(100%); }
+.theme-control button { display:inline-flex; align-items:center; justify-content:center; gap:.45rem; min-height:34px; padding:.45rem .8rem; border:0; border-radius:8px; background:transparent; color:var(--text-secondary); font-size:.78rem; font-weight:500; }
+.theme-control button[aria-pressed='true'] { color:var(--accent); }
+.theme-control button:hover { color:var(--text-primary); }
+.theme-control svg { flex-shrink:0; }
+@media(max-width:420px) { .theme-control button { padding:.4rem .5rem; gap:.3rem; } .app-header-left h1 { font-size:.95rem; } }
+@media(pointer:coarse) { .theme-control button { min-height:44px; } }
+@media(prefers-reduced-motion:reduce) { .theme-control-indicator { transition:none; } }
+.action-button { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; vertical-align:middle; }
+.action-icon { flex-shrink:0; width:16px; height:16px; }
+.action-button-label { min-width:0; }
+.account-footer-actions { display:flex; gap:.75rem; margin-top:1.25rem; flex-wrap:wrap; }
+.account-footer-actions .export-btn { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; min-height:42px; padding:.65rem 1rem; flex:1; font-size:.85rem; }
+.account-footer-actions .export-btn:disabled { opacity:.45; cursor:not-allowed; }
+.transfer-activity-icon { display:grid; place-items:center; width:38px; height:38px; flex-shrink:0; border-radius:10px; background:var(--accent-soft); color:var(--accent); font-size:1.4rem; }
+.transfer-activity .transaction-amount span { color:var(--text-primary); }
+.accounts-panel>.transaction-list-header { flex-wrap:nowrap; align-items:flex-start; }
+.account-add-icon { display:grid; place-items:center; flex-shrink:0; width:40px; height:40px; border:1px solid var(--border-color); border-radius:10px; background:var(--accent-soft); color:var(--accent); }
+.account-add-icon:hover { border-color:var(--accent); background:var(--bg-page); }
+@media(pointer:coarse) { .account-add-icon { width:44px; height:44px; } }
+.workspace-modal .account-modal-content .bill-editor { padding-top:0; margin-top:0; border-top:0; }
 .category-select-trigger { min-height:42px; padding:.65rem .85rem; border-radius:var(--control-radius); }
 .category-select-chevron { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:16px; height:16px; margin-left:.5rem; color:var(--text-secondary); }
 .category-select-chevron svg { width:16px; height:16px; }

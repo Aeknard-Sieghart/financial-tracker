@@ -1,3 +1,4 @@
+import ActionButton from './ActionButton'
 import { useState } from 'react'
 import CategoryIcon from './CategoryIcon'
 import { CATEGORY_ICONS, CATEGORY_COLORS, iconPath, tint } from '../constants/categoryIcons'
@@ -142,20 +143,20 @@ function CategoryManager({ categories, transactions, onAdd, onEdit, onDelete }) 
                     </span>
 
                     <span className="category-row-actions">
-                      <button
+                      <ActionButton icon="edit"
                         className="category-edit-btn"
                         onClick={() => startEdit(category)}
                       >   
                         Edit
-                      </button>
+                      </ActionButton>
                       {/* "Other" is the fallback for deleted categories, so it stays */}
                       {category.name !== FALLBACK_NAME && (
-                        <button
+                        <ActionButton icon="remove"
                           className="category-delete-btn"
                           onClick={() => setDeleteId(category.id)}
                         >
                           Delete
-                        </button>
+                        </ActionButton>
                       )}
                     </span>
                   </div>
@@ -185,9 +186,7 @@ function CategoryManager({ categories, transactions, onAdd, onEdit, onDelete }) 
             </div>
           )}
 
-          <button className="category-add-btn" onClick={startAdd}>
-            <span className="category-add-plus">+</span>New category
-          </button>
+          <ActionButton icon="add" className="category-add-btn" onClick={startAdd}>New category</ActionButton>
         </>
       )}
 
@@ -279,12 +278,12 @@ function CategoryManager({ categories, transactions, onAdd, onEdit, onDelete }) 
           </div>
 
           <div className="category-form-buttons">
-            <button className="category-save-btn" onClick={handleSave}>
+            <ActionButton icon={editingId ? 'save' : 'add'} className="category-save-btn" onClick={handleSave}>
               {editingId ? 'Save changes' : 'Add category'}
-            </button>
-            <button className="category-cancel-btn" onClick={cancelForm}>
+            </ActionButton>
+            <ActionButton icon="close" className="category-cancel-btn" onClick={cancelForm}>
               Cancel
-            </button>
+            </ActionButton>
           </div>
         </div>
       )}
@@ -305,12 +304,12 @@ function CategoryManager({ categories, transactions, onAdd, onEdit, onDelete }) 
                 : 'Nothing uses this category yet, so it is safe to remove.'}
             </p>
             <div className="dialog-buttons">
-              <button className="dialog-cancel" onClick={() => setDeleteId(null)}>
+              <ActionButton icon="close" className="dialog-cancel" onClick={() => setDeleteId(null)}>
                 Cancel
-              </button>
-              <button className="dialog-confirm" onClick={confirmDelete}>
+              </ActionButton>
+              <ActionButton icon="remove" className="dialog-confirm" onClick={confirmDelete}>
                 Delete category
-              </button>
+              </ActionButton>
             </div>
           </div>
         </div>
