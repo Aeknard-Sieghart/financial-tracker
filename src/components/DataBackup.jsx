@@ -1,4 +1,5 @@
 import ActionButton from './ActionButton'
+import AccountEditorSurface from './AccountEditorSurface'
 import { useRef, useState } from 'react'
 import { validSchedule } from '../utils/recurring'
 import { validAccount, validTransfer } from '../utils/accounts'
@@ -34,10 +35,12 @@ function validateBackup(data) {
   return backup
 }
 
-export default function DataBackup({ transactions, budgets, categories, bills, schedules, accounts, transfers, goals, debts, onRestore }) {
+export default function DataBackup({ transactions, budgets, categories, bills, schedules, accounts, transfers, goals, debts, onRestore, onClear }) {
   const input = useRef(null)
   const [pending, setPending] = useState(null)
   const [error, setError] = useState('')
+  const [clearing, setClearing] = useState(false)
+  const [confirmation, setConfirmation] = useState('')
   function download() {
     const data = { version: 8, exportedAt: new Date().toISOString(), transactions, budgets, categories, bills, schedules, accounts, transfers, goals, debts }
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
@@ -66,5 +69,14 @@ export default function DataBackup({ transactions, budgets, categories, bills, s
     {pending && pending.accounts && !pending.debts && debts?.length > 0 && <p role="alert">This older backup has no debt records. Restoring it will clear current debts. Export a full backup first to keep them.</p>}
     {pending && pending.accounts && !pending.goals && goals?.length > 0 && <p role="alert">This older account backup has no savings goals. Restoring it will clear your current goals. Export a backup first to keep them.</p>}
     {pending && <div className="backup-confirm" role="region" aria-label="Confirm import"><p>Restore {pending.transactions.length} transactions{pending.budgets ? `, ${Object.keys(pending.budgets).length} budgets` : ''}{pending.categories ? ', and categories' : ''}? This replaces the corresponding saved data. Export a backup first if you want to keep your current data. Older transaction-only backups leave budgets and categories unchanged.</p><div className="export-buttons"><ActionButton icon="restore" className="primary-action" onClick={() => { onRestore(pending); setPending(null) }}>Restore backup</ActionButton><ActionButton icon="close" className="export-btn" onClick={() => setPending(null)}>Cancel</ActionButton></div></div>}
+    {onClear && <div className="backup-clear"><div><h3>Clear financial data</h3><p>Start fresh on this browser. Export a backup first if you want to keep your records.</p></div><ActionButton icon="remove" className="dialog-confirm" onClick={() => { setConfirmation(''); setClearing(true) }}>Clear all data</ActionButton></div>}
+    {clearing && <AccountEditorSurface title="Clear all financial data?" onClose={() => setClearing(false)}><form onSubmit={event => {
+      event.preventDefault()
+      if (confirmation !== 'CLEAR') return
+      onClear()
+      setPending(null)
+      setError('')
+      setClearing(false)
+    }}><p>This permanently removes transactions, accounts, transfers, bills, debts and repayments, recurring schedules, savings goals, budgets, and custom categories from this browser. Display preferences are kept. This cannot be undone without a backup.</p><div className="form-group"><label htmlFor="clear-data-confirmation">Type CLEAR to confirm</label><input id="clear-data-confirmation" value={confirmation} onChange={event => setConfirmation(event.target.value)} autoComplete="off" /></div><div className="export-buttons"><ActionButton icon="download" className="export-btn" type="button" onClick={download}>Export backup first</ActionButton><ActionButton icon="close" className="export-btn" type="button" onClick={() => setClearing(false)}>Cancel</ActionButton><ActionButton icon="remove" className="dialog-confirm" type="submit" disabled={confirmation !== 'CLEAR'}>Clear all data permanently</ActionButton></div></form></AccountEditorSurface>}
   </section>
 }

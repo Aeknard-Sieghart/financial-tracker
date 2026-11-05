@@ -28,6 +28,7 @@ import { activityEntries } from './utils/activity'
 import { useToast } from './hooks/useToast'
 import {
   useCategories,
+  DEFAULT_CATEGORIES,
   makeCategoryId,
   allCategoryNames,
   FALLBACK_NAME,
@@ -459,6 +460,22 @@ function App() {
           setFilters({ searchQuery: '', type: '', category: '' })
           setEditingTransaction(null)
           addToast('Backup restored successfully!')
+        }} onClear={() => {
+          setTransactions([])
+          setSchedules([])
+          setBills([])
+          setDebts([])
+          setGoals([])
+          setTransfers([])
+          setAccounts([{ ...UNASSIGNED_ACCOUNT }])
+          setBudgets({})
+          setCategories(structuredClone(DEFAULT_CATEGORIES))
+          setFilters({ searchQuery: '', type: '', category: '' })
+          setEditingTransaction(null)
+          setActivityMonth(localMonth())
+          setReminderMonth(prev => ({ month: localMonth(), version: prev.version + 1 }))
+          setConfirmDialog({ isOpen: false, transactionId: null })
+          addToast('All financial data cleared.')
         }} />
         }
       />

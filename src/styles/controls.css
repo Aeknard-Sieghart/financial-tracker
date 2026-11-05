@@ -77,3 +77,16 @@ select:focus-visible { border-color:var(--accent); outline:3px solid var(--accen
 .category-select-chevron { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:16px; height:16px; margin-left:.5rem; color:var(--text-secondary); }
 .category-select-chevron svg { width:16px; height:16px; }
 @media(forced-colors:active) { select,.form-group select,.filter-group select,.period-input-group select,.sort-controls select,.activity-month-controls>select { appearance:auto; background-image:none; } }
+.backup-clear {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color, #304455);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.backup-clear h3 { margin: 0 0 8px; }
+.backup-clear p { margin: 0; }
+.backup-clear > button { flex-shrink: 0; }
