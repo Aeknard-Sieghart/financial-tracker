@@ -90,3 +90,20 @@ select:focus-visible { border-color:var(--accent); outline:3px solid var(--accen
 .backup-clear h3 { margin: 0 0 8px; }
 .backup-clear p { margin: 0; }
 .backup-clear > button { flex-shrink: 0; }
+.account-balance-breakdown { padding:16px; margin:0 0 20px; border:1px solid var(--border-color); border-radius:12px; }
+.account-balance-breakdown p { margin:0 0 10px; }
+.account-balance-breakdown summary { cursor:pointer; margin-bottom:10px; }
+.bento-transactions .filter-settings { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:end; }
+.bento-transactions .filter-settings .filter-group { min-width:0; }
+.activity-filter-note { grid-column:1 / -1; font-size:.8rem; }
+.activity-date-toggle { display:flex; align-items:center; gap:8px; }
+.activity-date-toggle input[type='checkbox'] { width:auto; min-height:0; margin:0; }
+.activity-totals { padding:16px; border:1px solid var(--border-color); border-radius:12px; margin:16px 0; }
+.activity-totals dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:12px 0; }
+.activity-totals dt,.activity-totals p { font-size:.78rem; color:var(--text-secondary); }
+.activity-totals dd { margin:4px 0 0; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+@media(max-width:420px) { .bento-transactions .filter-settings { grid-template-columns:minmax(0,1fr); } }
+.bento-backup { display:grid; gap:24px; }
+.cloud-sync form { max-width:440px; margin:20px 0; }
+.cloud-sync .export-buttons { flex-wrap:wrap; gap:10px; margin-top:16px; }
+.cloud-setup { margin-top:20px; padding:16px; border:1px solid var(--border-color); border-radius:12px; }

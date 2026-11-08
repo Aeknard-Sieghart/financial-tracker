@@ -1,4 +1,16 @@
-# React + Vite
+# Financial Tracker
+
+Run `npm install` and `npm run dev` for local use. Financial data is stored in this
+browser until cloud sync is configured and connected.
+
+Optional cloud sync uses Supabase email-code sign-in and per-user database access.
+Follow [the setup guide](docs/cloud-sync.md), run [the database script](supabase/schema.sql)
+in your own Supabase project, and configure the public values in `.env.local` using
+[.env.example](.env.example). No project credentials are included in this repository.
+
+Validation: `npm run test:run`, `npm run lint`, and `npm run build`.
+
+## React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

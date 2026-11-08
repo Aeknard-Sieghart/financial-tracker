@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import DataBackup from './DataBackup'
 import { debtBalance, debtMonthStatus, repaymentEntries } from '../utils/debts'
+import { incomeOccurrences, incomeReceipt } from '../utils/incomePlans'
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
@@ -26,12 +27,14 @@ it('requires explicit confirmation before clearing and allows cancellation', () 
 it('round trips settled principal, fees and the billing month through export and import', async () => {
   const debt = { id: 'sp', name: 'SPayLater', provider: 'spaylater', openingPrincipal: 5000, dueDate: '2026-11-05', amountType: 'variable', monthlyAmounts: { '2026-11': 2200, '2026-12': 3000 } }
   // Paid in December against the November statement: both dates must survive.
-  const transactions = repaymentEntries(debt, 2000, 200, 'unassigned', '2026-12-01', 'payment-1', '2026-11')
+  const plan = { id: 'salary', name: 'Salary', active: true, days: [15, 30], amount: 15000, category: 'Salary', accountId: 'unassigned', startDate: '2026-11-01' }
+  const receipt = incomeReceipt(incomeOccurrences([plan], [], '2026-11-08')[0], 14500, 'unassigned', '2026-11-15')
+  const transactions = [...repaymentEntries(debt, 2000, 200, 'unassigned', '2026-12-01', 'payment-1', '2026-11'), receipt]
   const onRestore = vi.fn()
   let exported
   vi.stubGlobal('URL', { createObjectURL: vi.fn(blob => { exported = blob; return 'blob:backup' }), revokeObjectURL: vi.fn() })
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
-  const { container } = render(<DataBackup transactions={transactions} debts={[debt]} accounts={[{ id: 'unassigned', name: 'Unassigned', type: 'cash', openingBalance: 6000 }]} transfers={[]} goals={[]} bills={[]} schedules={[]} budgets={{}} onRestore={onRestore} />)
+  const { container } = render(<DataBackup spendingBuffer={500} incomePlans={[plan]} transactions={transactions} debts={[debt]} accounts={[{ id: 'unassigned', name: 'Unassigned', type: 'cash', openingBalance: 6000 }]} transfers={[]} goals={[]} bills={[]} schedules={[]} budgets={{}} onRestore={onRestore} />)
   fireEvent.click(screen.getByRole('button', { name: 'Export data' }))
   const json = await new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -44,6 +47,9 @@ it('round trips settled principal, fees and the billing month through export and
   fireEvent.click(screen.getByRole('button', { name: 'Restore backup' }))
   const restored = onRestore.mock.calls[0][0]
   expect(restored.transactions).toEqual(transactions)
+  expect(restored.incomePlans).toEqual([plan])
+  expect(restored.spendingBuffer).toBe(500)
+  expect(incomeOccurrences(restored.incomePlans, restored.transactions, '2026-11-16').some(o => o.date === '2026-11-15')).toBe(false)
   expect(debtBalance(restored.debts[0], restored.transactions)).toBe(3000)
   expect(debtMonthStatus(restored.debts[0], restored.transactions, '2026-11')).toMatchObject({ paid: 2200, remaining: 0, status: 'Paid this month' })
   expect(debtMonthStatus(restored.debts[0], restored.transactions, '2026-12')).toMatchObject({ paid: 0, remaining: 3000 })

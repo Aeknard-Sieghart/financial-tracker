@@ -3,6 +3,7 @@ import TransactionItem from './TransactionItem'
 import TransferActivity from './TransferActivity'
 import SortControls from './SortControls'
 import TransactionFilter from './TransactionFilter'
+import { activityTotals } from '../utils/activity'
 
 // Convert transactions array to CSV format and trigger download
 function exportCSV(transactions) {
@@ -51,6 +52,8 @@ function TransactionList({
   // Category definitions, for the row icons
   categories,
 }) {
+  const totals = activityTotals(transactions, filters.accountId)
+  const money = n => n.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })
   return (
     <div className="transaction-list">
 
@@ -80,6 +83,8 @@ function TransactionList({
 
       {/* Filter — lives inside the transaction list */}
       <TransactionFilter
+        accounts={accounts}
+        filters={filters}
         onFilterChange={onFilterChange}
         categories={allCategories}
         selectedCategory={filters.category}
@@ -87,6 +92,7 @@ function TransactionList({
         searchQuery={filters.searchQuery}
       />
 
+      <div className="activity-totals" aria-label="Filtered activity totals"><p><strong>{transactions.length} matching records</strong></p><dl><div><dt>Income</dt><dd>{money(totals.income)}</dd></div><div><dt>Expenses</dt><dd>{money(totals.expense)}</dd></div><div><dt>Debt principal</dt><dd>{money(totals.principal)}</dd></div><div><dt>Transfers</dt><dd>{money(totals.transfers)}</dd></div><div><dt>{filters.accountId ? 'Net account activity' : 'Net transaction flow'}</dt><dd>{money(totals.net)}</dd></div></dl><p>Totals cover the matching records only. {filters.accountId ? 'Transfers into this account add to net activity; transfers out subtract.' : 'Transfers between your accounts are excluded from net flow.'} Opening balances are excluded. CSV and JSON export all transactions; use Backup & restore for a full backup.</p></div>
       {/* Sort controls */}
       <SortControls sortBy={sortBy} onChange={onSortChange} />
 

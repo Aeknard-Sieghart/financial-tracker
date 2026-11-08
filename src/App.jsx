@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import DashboardSnapshot from './components/DashboardSnapshot'
 import ThemeControl from './components/ThemeControl'
 import LineInsights from './components/LineInsights'
 import SavingsGoals from './components/SavingsGoals'
 import Debts from './components/Debts'
+import IncomePlanner from './components/IncomePlanner'
+import SafeToSpend from './components/SafeToSpend'
+import { incomeOccurrences, incomeReceipt } from './utils/incomePlans'
 import { debtReminders } from './utils/debts'
 import { providerFor } from './constants/billProviders'
 import BillReminders from './components/BillReminders'
@@ -16,6 +19,8 @@ import ConfirmDialog from './components/ConfirmDialog'
 import BudgetStatus from './components/BudgetStatus'
 import Sidebar from './components/Sidebar'
 import DataBackup from './components/DataBackup'
+import CloudSync from './components/CloudSync'
+import { financialSnapshot } from './utils/cloudSnapshot'
 import Bills from './components/Bills'
 import Accounts from './components/Accounts'
 import DashboardLayout from './components/DashboardLayout'
@@ -24,7 +29,7 @@ import { UNASSIGNED_ACCOUNT } from './utils/accounts'
 import { applyRecurring } from './utils/recurring'
 import PeriodDatePicker from './components/PeriodDatePicker'
 import { localMonth } from './utils/bills'
-import { activityEntries } from './utils/activity'
+import { activityEntries, EMPTY_ACTIVITY_FILTERS } from './utils/activity'
 import { useToast } from './hooks/useToast'
 import {
   useCategories,
@@ -50,6 +55,14 @@ function App() {
   const [accounts, setAccounts] = useStoredState('accounts', [UNASSIGNED_ACCOUNT])
   const [goals, setGoals] = useStoredState('savingsGoals', [])
   const [debts, setDebts] = useStoredState('debts', [])
+  const [incomePlans, setIncomePlans] = useStoredState('incomePlans', [])
+  const [spendingBuffer, setSpendingBuffer] = useStoredState('spendingBuffer', 0)
+  const [balanceHidden, setBalanceHidden] = useStoredState('netBalanceHidden', false)
+  const receiveIncome = receipt => {
+    const entry = incomeReceipt(receipt.occurrence, receipt.amount, receipt.accountId, receipt.date)
+    setTransactions(prev => prev.some(t => t.id === entry.id || (t.type === 'income' && t.incomePlanId === entry.incomePlanId && t.incomeDueDate === entry.incomeDueDate)) ? prev : [entry, ...prev])
+    addToast('Income received and recorded.')
+  }
   const [transfers, setTransfers] = useStoredState('transfers', [])
   const [initialRecurring] = useState(() => applyRecurring(JSON.parse(localStorage.getItem('transactions') || '[]'), JSON.parse(localStorage.getItem('recurring') || '[]')))
   const [schedules, setSchedules] = useState(initialRecurring.schedules)
@@ -74,6 +87,15 @@ function App() {
 
   // Categories (name + color + icon), persisted to localStorage by the hook
   const { categories, setCategories } = useCategories()
+
+  const [cloudEpoch, setCloudEpoch] = useState(0)
+  const cloudSnapshot = useMemo(() => financialSnapshot({ transactions, accounts, transfers, budgets, categories, bills, debts, schedules, goals, incomePlans, spendingBuffer }), [transactions, accounts, transfers, budgets, categories, bills, debts, schedules, goals, incomePlans, spendingBuffer])
+  const applyCloudSnapshot = useCallback(data => {
+    setTransactions(data.transactions); setAccounts(data.accounts); setTransfers(data.transfers)
+    setBudgets(data.budgets); setCategories(data.categories); setBills(data.bills)
+    setDebts(data.debts); setSchedules(data.schedules); setGoals(data.goals)
+    setIncomePlans(data.incomePlans); setSpendingBuffer(data.spendingBuffer)
+  }, [setAccounts, setTransfers, setCategories, setBills, setDebts, setGoals, setIncomePlans, setSpendingBuffer])
 
   // Track which transaction is being edited (null means add mode)
   const [editingTransaction, setEditingTransaction] = useState(null)
@@ -246,6 +268,7 @@ function App() {
   // Merge new filter values into existing filter state
   function handleFilterChange(newFilters) {
     setFilters((prev) => ({ ...prev, ...newFilters }))
+    if (newFilters.fromDate || newFilters.toDate) setActivityMonth('all')
   }
 
 
@@ -374,7 +397,7 @@ function App() {
       />
 
       {/* Sidebar — Add Transaction + Budgets + Categories */}
-      <Sidebar
+      <Sidebar incomePlans={incomePlans} onIncomePlansChange={setIncomePlans} onIncomeReceive={receiveIncome} today={today}
         debts={debts}
         onDebtsChange={setDebts}
         onDebtRepay={entries => { setTransactions(prev => [...entries, ...prev]); addToast('Repayment recorded.') }}
@@ -413,14 +436,16 @@ function App() {
 
       {/* Main content */}
       <DashboardLayout
+        safeToSpend={<SafeToSpend accounts={accounts} transactions={transactions} transfers={transfers} bills={bills} debts={debts} goals={goals} today={today} nextPayday={incomeOccurrences(incomePlans, transactions, today).find(o => o.date >= today)?.date} buffer={spendingBuffer} onBufferChange={setSpendingBuffer} hidden={balanceHidden} />}
+        income={<IncomePlanner plans={incomePlans} transactions={transactions} accounts={accounts} categories={categories} bills={bills} debts={debts} today={today} onChange={setIncomePlans} onReceive={receiveIncome} />}
         debts={<Debts debts={debts} transactions={transactions} accounts={accounts} transfers={transfers} onChange={setDebts} onRepay={entries => { setTransactions(prev => [...entries, ...prev]); addToast('Repayment recorded.') }} />}
         goals={<SavingsGoals goals={goals} accounts={accounts} transactions={transactions} transfers={transfers} onChange={setGoals} />}
         reminders={reminders.length > 0 ? <BillReminders reminders={reminders} today={today} onView={month => setReminderMonth(prev => ({ month, version: prev.version + 1 }))} /> : null}
         trends={<LineInsights transactions={transactions} accounts={accounts} categories={categories} />}
         onManage={() => { setEditingTransaction(null); setSidebarOpen(true) }}
-        snapshot={<DashboardSnapshot accounts={accounts} transactions={transactions} transfers={transfers} bills={bills} reminders={reminders} />}
-        monthControl={<div className="activity-toolbar"><div><p className="dashboard-eyebrow">ACCOUNT ACTIVITY</p><h2>Recent activity</h2></div><div className="activity-month-controls"><select aria-label="Activity period" value={activityMonth === 'all' ? 'all' : activityMonth === localMonth() ? 'current' : 'custom'} onChange={e => setActivityMonth(e.target.value === 'all' ? 'all' : localMonth())}><option value="current">This month</option><option value="custom">Choose month</option><option value="all">All time</option></select>{activityMonth !== 'all' && <PeriodDatePicker type="month" value={activityMonth} onChange={e => setActivityMonth(e.target.value)} />}</div></div>}
-        accounts={<Accounts accountReferences={[...goals.map(g => g.accountId), ...schedules.map(s => s.accountId)]} accounts={accounts} transfers={transfers} transactions={transactions} onAccountsChange={setAccounts} onTransfersChange={setTransfers} />}
+        snapshot={<DashboardSnapshot balanceHidden={balanceHidden} onBalanceHiddenChange={setBalanceHidden} nextIncome={incomeOccurrences(incomePlans, transactions, today).find(o => o.date >= today)} accounts={accounts} transactions={transactions} transfers={transfers} bills={bills} reminders={reminders} />}
+        monthControl={<div className="activity-toolbar"><div><p className="dashboard-eyebrow">ACCOUNT ACTIVITY</p><h2>Recent activity</h2></div><div className="activity-month-controls"><select aria-label="Activity period" value={activityMonth === 'all' ? 'all' : activityMonth === localMonth() ? 'current' : 'custom'} onChange={e => { setActivityMonth(e.target.value === 'all' ? 'all' : localMonth()); setFilters(prev => ({ ...prev, fromDate: '', toDate: '' })) }}><option value="current">This month</option><option value="custom">Choose month</option><option value="all">All time</option></select>{activityMonth !== 'all' && <PeriodDatePicker type="month" value={activityMonth} onChange={e => { setActivityMonth(e.target.value); setFilters(prev => ({ ...prev, fromDate: '', toDate: '' })) }} />}</div></div>}
+        accounts={<Accounts accountReferences={[...incomePlans.map(p => p.accountId), ...goals.map(g => g.accountId), ...schedules.map(s => s.accountId)]} accounts={accounts} transfers={transfers} transactions={transactions} onAccountsChange={setAccounts} onTransfersChange={setTransfers} />}
         bills={<Bills key={reminderMonth.version} initialMonth={reminderMonth.month} accounts={accounts} bills={bills} transactions={transactions} categories={categories} onChange={setBills} onPayment={addTransaction} onMoveToDebt={(bill, state) => { setDebts(prev => [...prev, { id: crypto.randomUUID(), name: bill.name, provider: providerFor(bill)?.id === 'tala' ? 'tala' : 'spaylater', openingPrincipal: state.remaining, dueDate: state.dueDate }]); setBills(prev => prev.filter(b => b.id !== bill.id)); addToast('Moved to Debt. Earlier transactions preserved.') }} />}
         budgets={Object.values(budgets).some(value => value !== undefined) ?
         <BudgetStatus
@@ -446,7 +471,12 @@ function App() {
         />
         }
         backup={
-        <DataBackup debts={debts} goals={goals} accounts={accounts} transfers={transfers} transactions={transactions} budgets={budgets} categories={categories} bills={bills} schedules={schedules} onRestore={(backup) => {
+        <><CloudSync key={cloudEpoch} snapshot={cloudSnapshot} onApply={applyCloudSnapshot} />
+        <DataBackup spendingBuffer={spendingBuffer} incomePlans={incomePlans} debts={debts} goals={goals} accounts={accounts} transfers={transfers} transactions={transactions} budgets={budgets} categories={categories} bills={bills} schedules={schedules} onRestore={(backup) => {
+          if (backup.spendingBuffer !== undefined) setSpendingBuffer(backup.spendingBuffer)
+          else if (backup.accounts) setSpendingBuffer(0)
+          if (backup.incomePlans) setIncomePlans(backup.incomePlans)
+          else if (backup.accounts) setIncomePlans([])
           if (backup.debts) setDebts(backup.debts)
           else if (backup.accounts) setDebts([])
           if (backup.goals) setGoals(backup.goals)
@@ -457,12 +487,15 @@ function App() {
           setTransactions(backup.transactions)
           if (backup.budgets) setBudgets(backup.budgets)
           if (backup.categories) setCategories(backup.categories)
-          setFilters({ searchQuery: '', type: '', category: '' })
+          setFilters({ ...EMPTY_ACTIVITY_FILTERS })
           setEditingTransaction(null)
           addToast('Backup restored successfully!')
         }} onClear={() => {
+          setCloudEpoch(prev => prev + 1)
           setTransactions([])
           setSchedules([])
+          setIncomePlans([])
+          setSpendingBuffer(0)
           setBills([])
           setDebts([])
           setGoals([])
@@ -476,7 +509,7 @@ function App() {
           setReminderMonth(prev => ({ month: localMonth(), version: prev.version + 1 }))
           setConfirmDialog({ isOpen: false, transactionId: null })
           addToast('All financial data cleared.')
-        }} />
+        }} /></>
         }
       />
     </div>

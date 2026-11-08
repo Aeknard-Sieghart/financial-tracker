@@ -8,9 +8,10 @@ import RecurringManager from './RecurringManager'
 import Accounts from './Accounts'
 import SavingsGoals from './SavingsGoals'
 import Debts from './Debts'
+import IncomePlanner from './IncomePlanner'
 
 function Sidebar({
-  isOpen,
+  isOpen, incomePlans, onIncomePlansChange, onIncomeReceive, today,
   debts,
   onDebtsChange,
   onDebtRepay,
@@ -65,7 +66,7 @@ function Sidebar({
 
         {/* Sidebar header */}
         <div className="sidebar-header">
-          <h2>{editingTransaction ? 'Edit transaction' : active === 'debts' ? 'Add debt' : active === 'goals' ? 'Add savings goal' : titles[active] || 'Workspace menu'}</h2>
+          <h2>{editingTransaction ? 'Edit transaction' : active === 'income' ? 'Add scheduled income' : active === 'debts' ? 'Add debt' : active === 'goals' ? 'Add savings goal' : titles[active] || 'Workspace menu'}</h2>
           <button className="sidebar-close" onClick={close} title="Close menu">
             ✕
           </button>
@@ -76,6 +77,7 @@ function Sidebar({
           {!active && <nav className="workspace-menu" aria-label="Workspace">
             <p>Manage your finances</p>
             {Object.entries(titles).map(([id, title], index) => <button key={id} onClick={() => setSelected(id)}><span className="menu-symbol"><ActionIcon name={['add', 'pay', 'palette', 'add', 'restore', 'add'][index]} /></span><span><strong>{title}</strong><small>{['Record income or an expense', 'Plan your spending limits', 'Organize income and expenses', 'Set an amount and monthly due date', 'Automatically record monthly entries', 'Set up a bank, cash, or e-wallet account'][index]}</small></span><span aria-hidden="true">›</span></button>)}
+            <button onClick={() => setSelected('income')}><span className="menu-symbol"><ActionIcon name="add" /></span><span><strong>Scheduled income</strong><small>Plan paydays and confirm received income</small></span><span aria-hidden="true">›</span></button>
             <button onClick={() => setSelected('goals')}><span className="menu-symbol"><ActionIcon name="add" /></span><span><strong>Add savings goal</strong><small>Save toward a purchase or personal target</small></span><span aria-hidden="true">›</span></button>
             <button onClick={() => setSelected('debts')}><span className="menu-symbol"><ActionIcon name="pay" /></span><span><strong>Add debt</strong><small>Track loans, credit, and repayments</small></span><span aria-hidden="true">›</span></button>
           </nav>}
@@ -95,6 +97,7 @@ function Sidebar({
           />}
 
           {/* Budget Manager */}
+          {active === 'income' && <IncomePlanner editorOnly plans={incomePlans} transactions={transactions} accounts={accounts} categories={categories} bills={bills} debts={debts} today={today} onChange={onIncomePlansChange} onReceive={onIncomeReceive} onDone={close} />}
           {active === 'debts' && <Debts editorOnly debts={debts} transactions={transactions} accounts={accounts} transfers={transfers} onChange={onDebtsChange} onRepay={onDebtRepay} onDone={close} />}
           {active === 'goals' && <SavingsGoals editorOnly goals={goals} accounts={accounts} transactions={transactions} transfers={transfers} onChange={onGoalsChange} onDone={close} />}
           {active === 'accounts' && <Accounts editorOnly accounts={accounts} transactions={transactions} transfers={transfers} onAccountsChange={onAccountsChange} onTransfersChange={onTransfersChange} onDone={close} />}

@@ -151,3 +151,16 @@
 @media(max-width:1100px) { .snapshot-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .bento-bills { grid-column:1 / -1; } .insights-grid { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:760px) { .bento-accounts,.bento-transactions,.bento-bills { grid-column:1 / -1; } .insights-grid .charts-grid { grid-template-columns:minmax(0,1fr); } .activity-toolbar { padding:1.2rem 1.2rem 0; } }
 @media(max-width:420px) { .snapshot-grid { grid-template-columns:minmax(0,1fr); } .snapshot-tile { min-height:115px; } .bento-insights>summary>span { display:block; margin:.5rem 0 0; } }
+.bento-income { grid-column: 1 / -1; }
+.payday-summary { padding: 16px; margin: 20px 0; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); }
+.income-planner summary { cursor: pointer; padding: 12px 0; }
+@media(min-width:1101px) { .snapshot-grid { grid-template-columns:1.7fr repeat(4,minmax(0,1fr)); } }
+.bento-safe-to-spend { grid-column:1 / -1; }
+.safe-to-spend h2 { margin:0 0 12px; }
+.safe-to-spend>strong { display:block; }
+.safe-to-spend details { margin-top: 12px; font-size: .8rem; }
+.safe-to-spend summary { cursor: pointer; color: var(--text-secondary); }
+.safe-to-spend dl { margin: 16px 0; }
+.safe-to-spend dl>div { display:flex; justify-content:space-between; gap:12px; margin:10px 0; }
+.safe-to-spend dd { margin:0; font-variant-numeric:tabular-nums; }
+.safe-to-spend .export-btn { margin-top:12px; }
