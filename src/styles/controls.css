@@ -107,3 +107,10 @@ select:focus-visible { border-color:var(--accent); outline:3px solid var(--accen
 .cloud-sync form { max-width:440px; margin:20px 0; }
 .cloud-sync .export-buttons { flex-wrap:wrap; gap:10px; margin-top:16px; }
 .cloud-setup { margin-top:20px; padding:16px; border:1px solid var(--border-color); border-radius:12px; }
+.auth-screen { min-height:80vh; display:grid; place-items:center; padding:24px 0; }
+.auth-panel { width:min(100%,520px); padding:32px; border:1px solid var(--border-color); border-radius:20px; background:var(--bg-card); }
+.auth-panel h1 { font-size:1.6rem; margin:0 0 16px; }
+.auth-panel p { margin-bottom:20px; line-height:1.6; }
+.auth-panel form { margin:24px 0; }
+.auth-panel .export-buttons { display:flex; flex-wrap:wrap; gap:12px; margin:24px 0; }
+.workspace-session-bar { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:12px; margin:0 0 20px; font-size:.8rem; color:var(--text-secondary); }

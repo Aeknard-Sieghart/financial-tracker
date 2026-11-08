@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import CloudSync from './CloudSync'
 import { financialSnapshot } from '../utils/cloudSnapshot'
 import { DEFAULT_CATEGORIES } from '../hooks/useCategories'
@@ -17,6 +17,21 @@ it('keeps local mode usable without configuration', () => {
   render(<CloudSync client={null} snapshot={snapshot} onApply={vi.fn()} />)
   expect(screen.getByText('Setup required')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Send sign-in code' })).not.toBeInTheDocument()
+})
+it('ignores a previous account response after switching to a different managed session', async () => {
+  let finishOldRead
+  const oldClient = clientMock(), nextClient = clientMock()
+  oldClient.from = vi.fn(() => ({ select: () => ({ eq: () => ({ maybeSingle: () => new Promise(resolve => { finishOldRead = resolve }) }) }) }))
+  const apply = vi.fn()
+  const { rerender } = render(<CloudSync client={oldClient} session={{ user: { id: 'a', email: 'a@example.com' } }} snapshot={snapshot} onApply={apply} />)
+  await waitFor(() => expect(finishOldRead).toBeDefined())
+  rerender(<CloudSync client={nextClient} session={{ user: { id: 'b', email: 'b@example.com' } }} snapshot={snapshot} onApply={apply} />)
+  await screen.findByRole('button', { name: 'Use this device’s data' })
+  await act(async () => finishOldRead({ data: { payload: { ...snapshot, spendingBuffer: 100 }, revision: 1 }, error: null }))
+  expect(apply).not.toHaveBeenCalled()
+  expect(oldClient.rpc).not.toHaveBeenCalled()
+  expect(nextClient.rpc).not.toHaveBeenCalled()
+  expect(screen.getByText('b@example.com')).toBeInTheDocument()
 })
 it('requires explicit upload confirmation instead of uploading just after sign-in', async () => {
   const client = clientMock(), apply = vi.fn()

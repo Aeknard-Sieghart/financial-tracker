@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useWorkspaceStorage } from './useWorkspace'
 import { FALLBACK_CATEGORY } from '../constants/categoryIcons'
 
 // The categories the app ships with. `builtin: true` only affects the
@@ -49,10 +50,10 @@ export function allCategoryNames(categories) {
 
 // Pull in any category names that exist on saved transactions but aren't in
 // the list yet, so upgrading from the hardcoded version doesn't orphan data.
-function adoptOrphans(categories) {
+function adoptOrphans(categories, storage) {
   let transactions
   try {
-    transactions = JSON.parse(localStorage.getItem('transactions')) || []
+    transactions = JSON.parse(storage.getItem('transactions')) || []
   } catch {
     transactions = []
   }
@@ -84,8 +85,9 @@ function adoptOrphans(categories) {
 }
 
 export function useCategories() {
+  const storage = useWorkspaceStorage()
   const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('categories')
+    const saved = storage.getItem('categories')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
@@ -95,13 +97,13 @@ export function useCategories() {
         // Corrupt value — fall through to defaults.
       }
     }
-    return adoptOrphans(DEFAULT_CATEGORIES)
+    return adoptOrphans(DEFAULT_CATEGORIES, storage)
   })
 
   // Persist on every change.
   useEffect(() => {
-    localStorage.setItem('categories', JSON.stringify(categories))
-  }, [categories])
+    storage.setItem('categories', JSON.stringify(categories))
+  }, [storage, categories])
 
   return { categories, setCategories }
 }

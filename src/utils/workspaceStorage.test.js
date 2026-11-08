@@ -1,0 +1,62 @@
+import { beforeEach, expect, it } from 'vitest'
+import { legacyBackupKey, prepareLegacyWorkspace, resolveLegacyWorkspace, scopedStorage, createWorkspaceLifetime } from './workspaceStorage'
+beforeEach(() => localStorage.clear())
+it('separates every user and Supabase project without a shared fallback', () => {
+  const a = scopedStorage('project', 'a'), b = scopedStorage('project', 'b'), otherProject = scopedStorage('other', 'a')
+  a.setItem('transactions', '["private-a"]')
+  expect(b.getItem('transactions')).toBeNull()
+  expect(otherProject.getItem('transactions')).toBeNull()
+  expect(localStorage.getItem('transactions')).toBeNull()
+  b.setItem('transactions', '["private-b"]')
+  b.removeItem('transactions')
+  expect(a.getItem('transactions')).toBe('["private-a"]')
+  expect(() => scopedStorage('project', null)).toThrow('signed-in user')
+})
+it('backs up legacy data before removing shared keys and restores only to the initial owner', () => {
+  localStorage.setItem('transactions', '[{"id":"salary"}]')
+  localStorage.setItem('accounts', '[{"id":"unassigned"}]')
+  const migration = prepareLegacyWorkspace('project', 'a')
+  expect(migration).toMatchObject({ ownerId: 'a', pending: true, backedUp: true })
+  expect(localStorage.getItem('transactions')).toBeNull()
+  expect(scopedStorage('project', 'a').getItem('transactions')).toBeNull()
+  expect(() => resolveLegacyWorkspace('project', 'b', true)).toThrow('not assigned')
+  resolveLegacyWorkspace('project', 'a', true)
+  expect(scopedStorage('project', 'a').getItem('transactions')).toBe('[{"id":"salary"}]')
+  expect(localStorage.getItem(legacyBackupKey('project'))).toContain('salary')
+  expect(prepareLegacyWorkspace('project', 'b')).toMatchObject({ ownerId: 'a', pending: false })
+})
+it('never assigns legacy records to a new login if the browser initially had no session', () => {
+  localStorage.setItem('transactions', '["previous-person"]')
+  expect(prepareLegacyWorkspace('project', null)).toMatchObject({ ownerId: null, pending: false })
+  expect(prepareLegacyWorkspace('project', 'b').ownerId).toBeNull()
+  expect(() => resolveLegacyWorkspace('project', 'b', true)).toThrow('not assigned')
+  expect(scopedStorage('project', 'b').getItem('transactions')).toBeNull()
+  expect(localStorage.getItem(legacyBackupKey('project'))).toContain('previous-person')
+})
+it('retains a recovery copy when the owner chooses a separate workspace', () => {
+  localStorage.setItem('transactions', '["old"]')
+  prepareLegacyWorkspace('project', 'a')
+  resolveLegacyWorkspace('project', 'a', false)
+  expect(scopedStorage('project', 'a').getItem('transactions')).toBeNull()
+  expect(localStorage.getItem(legacyBackupKey('project'))).toContain('old')
+})
+it('does not remove shared data when its backup cannot be written', () => {
+  const values = new Map([['transactions', '["keep"]']])
+  const storage = { getItem: key => values.get(key) ?? null, setItem: () => { throw new Error('Storage full') }, removeItem: key => values.delete(key) }
+  expect(() => prepareLegacyWorkspace('project', 'a', storage)).toThrow('Storage full')
+  expect(values.get('transactions')).toBe('["keep"]')
+})
+it('does not merge legacy data with an existing user workspace', () => {
+  localStorage.setItem('transactions', '["legacy"]')
+  prepareLegacyWorkspace('project', 'a')
+  scopedStorage('project', 'a').setItem('transactions', '["new"]')
+  expect(() => resolveLegacyWorkspace('project', 'a', true)).toThrow('already has local data')
+  expect(scopedStorage('project', 'a').getItem('transactions')).toBe('["new"]')
+})
+it('supports Strict Mode reactivation while aborting the old request signal', () => {
+  const lifetime = createWorkspaceLifetime(), original = lifetime.signal
+  lifetime.abort(); expect(original.aborted).toBe(true)
+  lifetime.reset(); expect(lifetime.signal.aborted).toBe(false)
+  expect(lifetime.signal).not.toBe(original)
+  expect(original.aborted).toBe(true)
+})

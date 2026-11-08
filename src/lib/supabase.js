@@ -10,3 +10,18 @@ if (url && key?.startsWith('sb_publishable_') && !url.includes('YOUR_PROJECT') &
   } catch { /* Keep the local app available until configuration is corrected. */ }
 }
 export const supabase = client
+export const workspaceProject = client ? new URL(url).hostname : 'local'
+
+// A request is bound to the token of the workspace that created it. It can never
+// pick up a different user's token from the global Auth client during a switch.
+export function createWorkspaceClient(session, scope) {
+  return createClient(url, key, {
+    accessToken: async () => {
+      if (scope.signal.aborted) throw new Error('Workspace closed.')
+      return session.access_token
+    },
+    global: {
+      fetch: (input, init = {}) => fetch(input, { ...init, signal: init.signal ? AbortSignal.any([init.signal, scope.signal]) : scope.signal }),
+    },
+  })
+}

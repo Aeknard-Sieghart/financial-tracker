@@ -25,6 +25,7 @@ import Bills from './components/Bills'
 import Accounts from './components/Accounts'
 import DashboardLayout from './components/DashboardLayout'
 import { useStoredState } from './hooks/useStoredState'
+import { useWorkspace, useWorkspaceStorage } from './hooks/useWorkspace'
 import { UNASSIGNED_ACCOUNT } from './utils/accounts'
 import { applyRecurring } from './utils/recurring'
 import PeriodDatePicker from './components/PeriodDatePicker'
@@ -50,6 +51,8 @@ function getCurrentMonth() {
 }
 
 function App() {
+  const workspace = useWorkspace()
+  const storage = useWorkspaceStorage()
   const today = useToday()
   const [reminderMonth, setReminderMonth] = useState(() => ({ month: localMonth(), version: 0 }))
   const [accounts, setAccounts] = useStoredState('accounts', [UNASSIGNED_ACCOUNT])
@@ -64,9 +67,9 @@ function App() {
     addToast('Income received and recorded.')
   }
   const [transfers, setTransfers] = useStoredState('transfers', [])
-  const [initialRecurring] = useState(() => applyRecurring(JSON.parse(localStorage.getItem('transactions') || '[]'), JSON.parse(localStorage.getItem('recurring') || '[]')))
+  const [initialRecurring] = useState(() => applyRecurring(JSON.parse(storage.getItem('transactions') || '[]'), JSON.parse(storage.getItem('recurring') || '[]')))
   const [schedules, setSchedules] = useState(initialRecurring.schedules)
-  useEffect(() => { localStorage.setItem('recurring', JSON.stringify(schedules)) }, [schedules])
+  useEffect(() => { storage.setItem('recurring', JSON.stringify(schedules)) }, [storage, schedules])
   const [bills, setBills] = useStoredState('bills', [])
   // Load transactions from localStorage or start with empty array
   const [transactions, setTransactions] = useState(() => {
@@ -75,13 +78,13 @@ function App() {
 
   // Load dark mode preference from localStorage or default to false
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode')
+    const saved = storage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false
   })
 
   // Load budgets from localStorage or start with empty object
   const [budgets, setBudgets] = useState(() => {
-    const saved = localStorage.getItem('budgets')
+    const saved = storage.getItem('budgets')
     return saved ? JSON.parse(saved) : {}
   })
 
@@ -152,18 +155,18 @@ function App() {
 
   // Save dark mode preference to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode))
-  }, [darkMode])
+    storage.setItem('darkMode', JSON.stringify(darkMode))
+  }, [storage, darkMode])
 
   // Save all transactions to localStorage whenever the list changes
   useEffect(() => {
-    localStorage.setItem('transactions', JSON.stringify(transactions))
-  }, [transactions])
+    storage.setItem('transactions', JSON.stringify(transactions))
+  }, [storage, transactions])
 
   // Save budgets to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('budgets', JSON.stringify(budgets))
-  }, [budgets])
+    storage.setItem('budgets', JSON.stringify(budgets))
+  }, [storage, budgets])
 
   // Check if a new expense transaction exceeds or nears its category budget
   function checkBudgetWarning(newTransaction) {
@@ -471,7 +474,7 @@ function App() {
         />
         }
         backup={
-        <><CloudSync key={cloudEpoch} snapshot={cloudSnapshot} onApply={applyCloudSnapshot} />
+        <><CloudSync client={workspace?.dataClient} session={workspace?.session} onSignOut={workspace?.signOut} key={cloudEpoch} snapshot={cloudSnapshot} onApply={applyCloudSnapshot} />
         <DataBackup spendingBuffer={spendingBuffer} incomePlans={incomePlans} debts={debts} goals={goals} accounts={accounts} transfers={transfers} transactions={transactions} budgets={budgets} categories={categories} bills={bills} schedules={schedules} onRestore={(backup) => {
           if (backup.spendingBuffer !== undefined) setSpendingBuffer(backup.spendingBuffer)
           else if (backup.accounts) setSpendingBuffer(0)

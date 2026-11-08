@@ -81,10 +81,23 @@ The Supabase project alone does not deploy the frontend website.
   not delete cloud data. Choose the cloud copy again to recover it. If you explicitly
   choose to upload the empty local copy, that replaces the cloud data.
 - Importing a backup while automatic sync is active will synchronize the restored data.
-- Sign-out pauses sync and removes the auth session from this browser, but intentionally
-  retains its local financial copy. Use trusted devices. This is not a multi-user local
-  vault: anyone with access to the browser profile can view its local data. Different
-  users should use separate browser profiles. Clear local data after signing out if needed.
+- Configured deployments show a sign-in screen before mounting any financial components.
+  Each user's local data, categories, reminders, and preferences are stored under their
+  Supabase project and user ID. Switching accounts remounts a different workspace; there
+  is no fallback to another user's local records.
+- Sign-out immediately hides the dashboard, stops sync and aborts workspace requests.
+  Requests are bound to the workspace's captured token, so an old request cannot use a
+  new login's credentials. A request already committed on the server cannot be undone.
+- Signing out retains the user's separate local cache for their next login. These caches
+  are not encrypted: someone with access to browser developer tools or the browser profile
+  can inspect local storage. This is UI/account isolation, not an encrypted local vault.
+  Use trusted devices. Signing out here uses local scope; other devices remain signed in.
+- On upgrade, old shared local keys are backed up before removal. Only the account with an
+  existing session at initial startup is offered the previous browser data, with explicit
+  confirmation. Other logins start separate. If startup had no session or the session
+  changed during startup, old data is preserved in a recovery copy but isn't assigned to
+  a new login. Sign in and use your cloud copy or import your previously exported JSON.
+  Back up before upgrading if there are unsynced local edits.
 - Theme, wallet design, Net Balance visibility, and activity filters stay local.
   Account-specific properties, including card colors, order, archive status, and amount
   masking, are included with account records.
