@@ -114,3 +114,6 @@ select:focus-visible { border-color:var(--accent); outline:3px solid var(--accen
 .auth-panel form { margin:24px 0; }
 .auth-panel .export-buttons { display:flex; flex-wrap:wrap; gap:12px; margin:24px 0; }
 .workspace-session-bar { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:12px; margin:0 0 20px; font-size:.8rem; color:var(--text-secondary); }
+.action-spinner { width:16px; height:16px; flex-shrink:0; display:inline-block; box-sizing:border-box; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:action-spin .7s linear infinite; }
+@keyframes action-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .action-spinner { animation:none; } }

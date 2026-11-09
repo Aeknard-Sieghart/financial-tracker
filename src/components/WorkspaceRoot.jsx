@@ -20,6 +20,7 @@ function SignedInWorkspace({ session, clientFactory, project, signOut, boundaryR
 export default function WorkspaceRoot({ children, client = supabase, project = workspaceProject, clientFactory = createWorkspaceClient }) {
   const [auth, setAuth] = useState({ loading: true, session: null, migration: null, error: '' })
   const [retry, setRetry] = useState(0)
+  const [signingOut, setSigningOut] = useState(false)
   const boundaryRef = useRef(null)
   const currentUser = useRef(null)
   const revokeBoundary = useCallback(() => boundaryRef.current?.(), [])
@@ -51,6 +52,7 @@ export default function WorkspaceRoot({ children, client = supabase, project = w
   }, [client, project, retry, revokeBoundary])
 
   const signOut = useCallback(async () => {
+    setSigningOut(true)
     boundaryRef.current?.()
     currentUser.current = null
     setAuth(prev => ({ ...prev, session: null, error: '' }))
@@ -58,11 +60,12 @@ export default function WorkspaceRoot({ children, client = supabase, project = w
       const { error } = await client.auth.signOut({ scope: 'local' })
       if (error) throw error
     } catch (error) { setAuth(prev => ({ ...prev, error: `Workspace locked. ${error.message}` })) }
+    finally { setSigningOut(false) }
   }, [client])
 
   if (!client) return children
-  if (auth.loading) return <main className="auth-screen"><section className="auth-panel" role="status">Opening your workspace…</section></main>
-  if (auth.error && !auth.migration) return <main className="auth-screen"><section className="auth-panel"><h1>Unable to open workspace</h1><p role="alert">{auth.error}</p><ActionButton icon="restore" className="primary-action" onClick={() => setRetry(value => value + 1)}>Retry</ActionButton></section></main>
+  if (signingOut || auth.loading) return <main className="auth-screen"><section className="auth-panel" role="status" aria-busy="true"><span className="action-spinner" aria-hidden="true" /> {signingOut ? 'Signing out…' : 'Opening your workspace…'}</section></main>
+  if (auth.error && !auth.migration) return <main className="auth-screen"><section className="auth-panel"><h1>Unable to open workspace</h1><p role="alert">{auth.error}</p><ActionButton icon="restore" className="primary-action" onClick={() => { setAuth(prev => ({ ...prev, loading: true })); setRetry(value => value + 1) }}>Retry</ActionButton></section></main>
   if (!auth.session) return <>{auth.error && <p role="alert">{auth.error}</p>}<SignInForm client={client} /></>
   const userId = auth.session.user.id
   if (auth.migration?.pending && auth.migration.ownerId === userId) return <main className="auth-screen"><section className="auth-panel"><h1>Keep your previous browser data?</h1><p>You are signed in as <strong>{auth.session.user.email}</strong>. A recovery copy of the old shared workspace has been saved on this browser. Only this account can restore it.</p><p>If the old records belong to you, keep them here. Otherwise start a separate workspace and load your own cloud copy.</p><div className="export-buttons">{[true, false].map(restore => <ActionButton key={String(restore)} icon={restore ? 'restore' : 'add'} className={restore ? 'primary-action' : 'export-btn'} onClick={() => {

@@ -9,6 +9,7 @@ export default function DataBackup({ transactions, budgets, categories, bills, s
   const [error, setError] = useState('')
   const [clearing, setClearing] = useState(false)
   const [confirmation, setConfirmation] = useState('')
+  const [importing, setImporting] = useState(false)
   function download() {
     const data = { version: 10, exportedAt: new Date().toISOString(), transactions, budgets, categories, bills, schedules, accounts, transfers, goals, debts, incomePlans, spendingBuffer }
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
@@ -24,15 +25,17 @@ export default function DataBackup({ transactions, budgets, categories, bills, s
     setError('')
     setPending(null)
     if (!file) return
+    setImporting(true)
     try {
       if (file.size > 10 * 1024 * 1024) throw new Error('Choose a backup smaller than 10 MB.')
       setPending(validateBackup(JSON.parse(await file.text())))
     } catch (err) { setError(err instanceof SyntaxError ? 'This file is not valid JSON.' : err.message) }
+    finally { setImporting(false) }
   }
   return <section className="data-backup">
     <div><h2>Backup & restore</h2><p>Back up transactions, accounts, transfers, bills, debts, scheduled income, recurring schedules, savings goals, budgets, categories, and your spending buffer.</p></div>
-    <div className="export-buttons"><ActionButton icon="download" className="export-btn" onClick={download}>Export data</ActionButton><ActionButton icon="upload" className="export-btn" onClick={() => input.current.click()}>Import data</ActionButton></div>
-    <input ref={input} type="file" accept=".json,application/json" hidden onChange={readFile} />
+    <div className="export-buttons"><ActionButton icon="download" className="export-btn" onClick={download}>Export data</ActionButton><ActionButton icon="upload" className="export-btn" loading={importing} onClick={() => input.current.click()}>{importing ? 'Reading backup…' : 'Import data'}</ActionButton></div>
+    <input ref={input} type="file" accept=".json,application/json" hidden disabled={importing} onChange={readFile} />
     {error && <p role="alert">{error}</p>}
     {pending && pending.accounts && !pending.debts && debts?.length > 0 && <p role="alert">This older backup has no debt records. Restoring it will clear current debts. Export a full backup first to keep them.</p>}
     {pending && pending.accounts && !pending.goals && goals?.length > 0 && <p role="alert">This older account backup has no savings goals. Restoring it will clear your current goals. Export a backup first to keep them.</p>}

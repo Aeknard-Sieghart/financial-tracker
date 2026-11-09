@@ -10,7 +10,9 @@ export default function CloudSync({ snapshot, onApply, client = supabase, sessio
   const [email, setEmail] = useState('')
   const [token, setToken] = useState('')
   const [sentTo, setSentTo] = useState('')
-  const [authBusy, setAuthBusy] = useState(false)
+  const [authBusy, setAuthBusy] = useState('')
+  const [syncBusy, setSyncBusy] = useState('')
+  const operation = useRef(null)
   const [message, setMessage] = useState('')
   const [sync, setSync] = useState({ status: 'loading' })
   const [choice, setChoice] = useState(null)
@@ -20,18 +22,23 @@ export default function CloudSync({ snapshot, onApply, client = supabase, sessio
   const latest = useRef({ snapshot, onApply })
   useEffect(() => { latest.current = { snapshot, onApply } }, [snapshot, onApply])
 
-  const tick = useCallback(async (direction, expectedRevision) => {
+  const tick = useCallback(async (direction, expectedRevision, source = 'sync') => {
     const current = engine.current
-    if (!current || (!direction && !active.current)) return
+    if (!current || (!direction && !active.current && source !== 'check') || operation.current === current) return
     if (!navigator.onLine) { setSync(prev => ({ ...prev, status: 'offline' })); return }
+    operation.current = current
+    setSyncBusy(direction || source)
     try {
       const result = await current.run(direction, expectedRevision)
       if (engine.current !== current || ['busy', 'stopped'].includes(result.status)) return
       if (['choose', 'conflict'].includes(result.status)) active.current = false
-      else if (direction) active.current = true
+      else if (direction || source === 'check') active.current = true
       setSync(prev => ({ ...prev, ...result, error: '' }))
     } catch (error) {
       if (engine.current === current) setSync(prev => ({ ...prev, status: navigator.onLine ? 'error' : 'offline', error: error.message || 'Unable to sync. Your local data is still available.' }))
+    } finally {
+      if (operation.current === current) operation.current = null
+      if (engine.current === current) setSyncBusy('')
     }
   }, [])
 
@@ -68,11 +75,7 @@ export default function CloudSync({ snapshot, onApply, client = supabase, sessio
     })
     engine.current = current
     active.current = false
-    current.run().then(result => {
-      if (!alive || engine.current !== current || result.status === 'stopped') return
-      active.current = result.status === 'synced'
-      setSync(result)
-    }).catch(error => { if (alive) setSync({ status: 'error', error: error.message }) })
+    Promise.resolve().then(() => { if (alive && engine.current === current) tick(undefined, undefined, 'check') })
     const check = () => { if (document.visibilityState !== 'hidden') tick() }
     const interval = window.setInterval(check, 20000)
     window.addEventListener('online', check)
@@ -94,18 +97,19 @@ export default function CloudSync({ snapshot, onApply, client = supabase, sessio
     return () => clearTimeout(timer)
   }, [serialized, userId, tick])
 
-  async function authAction(action) {
-    setAuthBusy(true); setMessage('')
+  async function authAction(action, kind = 'signout') {
+    if (authBusy) return
+    setAuthBusy(kind); setMessage('')
     try { await action() } catch (error) { setMessage(error.message) }
-    finally { setAuthBusy(false) }
+    finally { setAuthBusy('') }
   }
   return <section className="data-backup cloud-sync" aria-label="Cloud sync"><div><h2>Cloud sync</h2><p>Keep your financial records in sync across devices. Local backups remain available below.</p></div>
-    {!client ? <div className="cloud-setup"><strong>Setup required</strong><p>Supabase is not connected yet. Your data is saved only in this browser. Follow docs/cloud-sync.md in the project to connect your Supabase project.</p></div> : !session ? <><p>Sign in using an email code. Connecting shares your financial records with your configured Supabase project after you choose a starting copy.</p><form onSubmit={e => { e.preventDefault(); authAction(async () => { const address = email.trim(); const { error } = await client.auth.signInWithOtp({ email: address }); if (error) throw error; setSentTo(address); setMessage('Check your email for the sign-in code.') }) }}><div className="form-group"><label>Email address<input type="email" required autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} /></label></div><ActionButton icon="save" className="primary-action" disabled={authBusy}>Send sign-in code</ActionButton></form>{sentTo && <form onSubmit={e => { e.preventDefault(); authAction(async () => { const { error } = await client.auth.verifyOtp({ email: sentTo, token: token.trim(), type: 'email' }); if (error) throw error; setToken(''); setSentTo(''); setMessage('Signed in. Choose which copy to use.') }) }}><p>Code sent to {sentTo}</p><div className="form-group"><label>Email code<input required autoComplete="one-time-code" inputMode="numeric" value={token} onChange={e => setToken(e.target.value)} /></label></div><ActionButton icon="save" className="primary-action" disabled={authBusy}>Verify code</ActionButton></form>}</> : <>
-      <p>Signed in as <strong>{session.user.email}</strong></p><p role="status">{labels[sync.status] || 'Connecting…'}</p>{sync.updatedAt && <p>Last synced: {new Date(sync.updatedAt).toLocaleString()}</p>}
+    {!client ? <div className="cloud-setup"><strong>Setup required</strong><p>Supabase is not connected yet. Your data is saved only in this browser. Follow docs/cloud-sync.md in the project to connect your Supabase project.</p></div> : !session ? <><p>Sign in using an email code. Connecting shares your financial records with your configured Supabase project after you choose a starting copy.</p><form onSubmit={e => { e.preventDefault(); authAction(async () => { const address = email.trim(); const { error } = await client.auth.signInWithOtp({ email: address }); if (error) throw error; setSentTo(address); setMessage('Check your email for the sign-in code.') }, 'send') }}><div className="form-group"><label>Email address<input type="email" required autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} /></label></div><ActionButton icon="save" className="primary-action" loading={authBusy === 'send'} disabled={Boolean(authBusy)}>{authBusy === 'send' ? 'Sending code…' : 'Send sign-in code'}</ActionButton></form>{sentTo && <form onSubmit={e => { e.preventDefault(); authAction(async () => { const { error } = await client.auth.verifyOtp({ email: sentTo, token: token.trim(), type: 'email' }); if (error) throw error; setToken(''); setSentTo(''); setMessage('Signed in. Choose which copy to use.') }, 'verify') }}><p>Code sent to {sentTo}</p><div className="form-group"><label>Email code<input required autoComplete="one-time-code" inputMode="numeric" value={token} onChange={e => setToken(e.target.value)} /></label></div><ActionButton icon="save" className="primary-action" loading={authBusy === 'verify'} disabled={Boolean(authBusy)}>{authBusy === 'verify' ? 'Verifying…' : 'Verify code'}</ActionButton></form>}</> : <>
+      <p>Signed in as <strong>{session.user.email}</strong></p><p role="status">{syncBusy ? ({ check: 'Checking cloud…', sync: 'Syncing…', upload: 'Uploading…', download: 'Downloading…' })[syncBusy] : labels[sync.status] || 'Connecting…'}</p>{sync.updatedAt && <p>Last synced: {new Date(sync.updatedAt).toLocaleString()}</p>}
       <p>Local copies are separated by account. Signing out locks this workspace and stops sync. Use a trusted browser. Clear data is local only and pauses automatic sync until you choose a starting copy again.</p>
-      {['choose', 'conflict'].includes(sync.status) && <div className="backup-confirm"><p>{sync.status === 'conflict' ? 'Changes were made on both devices. No copy was overwritten. Export a local backup before choosing which complete copy to keep.' : 'Choose your starting copy. Nothing is uploaded automatically on first connection.'}</p><p>This device: {snapshot.transactions.length} transactions · {snapshot.accounts.length} accounts{sync.remote ? ` · Cloud: ${sync.remote.payload.transactions.length} transactions, ${sync.remote.payload.accounts.length} accounts` : ' · No cloud copy yet'}</p><div className="export-buttons"><ActionButton icon="upload" className="export-btn" onClick={() => setChoice({ direction: 'upload', revision: sync.remote?.revision || 0 })}>Use this device’s data</ActionButton>{sync.remote && <ActionButton icon="download" className="export-btn" onClick={() => setChoice({ direction: 'download', revision: sync.remote.revision })}>Use cloud data</ActionButton>}</div></div>}
-      {choice && <div className="backup-confirm"><p>{choice.direction === 'upload' ? 'Replace the cloud copy with all financial data from this browser? Other connected devices will receive this copy.' : 'Replace financial data in this browser with the cloud copy? Export a local backup below first if you want to keep both.'}</p><div className="export-buttons"><ActionButton icon="save" className="primary-action" onClick={() => { const selected = choice; setChoice(null); tick(selected.direction, selected.revision) }}>Confirm {choice.direction === 'upload' ? 'upload' : 'download'}</ActionButton><ActionButton icon="close" className="export-btn" onClick={() => setChoice(null)}>Cancel</ActionButton></div></div>}
-      <div className="export-buttons"><ActionButton icon="restore" className="export-btn" onClick={() => { if (!engine.current) setCycle(value => value + 1); else { active.current = true; tick() } }}>Sync now</ActionButton><ActionButton icon="pause" className="export-btn" onClick={() => { active.current = false; engine.current?.stop(); engine.current = null; setChoice(null); setSync(prev => ({ ...prev, status: 'paused' })) }}>Pause sync</ActionButton><ActionButton icon="close" className="export-btn" disabled={authBusy} onClick={() => authAction(async () => { active.current = false; engine.current?.stop(); engine.current = null; if (onSignOut) { await onSignOut(); return } const { error } = await client.auth.signOut({ scope: 'local' }); if (error) throw error; setChoice(null); setMessage('Signed out. Your local financial data remains on this browser.') })}>Sign out</ActionButton></div>
+      {['choose', 'conflict'].includes(sync.status) && <div className="backup-confirm"><p>{sync.status === 'conflict' ? 'Changes were made on both devices. No copy was overwritten. Export a local backup before choosing which complete copy to keep.' : 'Choose your starting copy. Nothing is uploaded automatically on first connection.'}</p><p>This device: {snapshot.transactions.length} transactions · {snapshot.accounts.length} accounts{sync.remote ? ` · Cloud: ${sync.remote.payload.transactions.length} transactions, ${sync.remote.payload.accounts.length} accounts` : ' · No cloud copy yet'}</p><div className="export-buttons"><ActionButton icon="upload" className="export-btn" disabled={Boolean(syncBusy || authBusy)} onClick={() => setChoice({ direction: 'upload', revision: sync.remote?.revision || 0 })}>Use this device’s data</ActionButton>{sync.remote && <ActionButton icon="download" className="export-btn" onClick={() => setChoice({ direction: 'download', revision: sync.remote.revision })}>Use cloud data</ActionButton>}</div></div>}
+      {choice && <div className="backup-confirm"><p>{choice.direction === 'upload' ? 'Replace the cloud copy with all financial data from this browser? Other connected devices will receive this copy.' : 'Replace financial data in this browser with the cloud copy? Export a local backup below first if you want to keep both.'}</p><div className="export-buttons"><ActionButton icon="save" className="primary-action" loading={syncBusy === choice.direction} disabled={Boolean(syncBusy || authBusy)} onClick={async () => { const selected = choice; await tick(selected.direction, selected.revision); setChoice(null) }}>{syncBusy === choice.direction ? (choice.direction === 'upload' ? 'Uploading…' : 'Downloading…') : `Confirm ${choice.direction}`}</ActionButton><ActionButton icon="close" className="export-btn" disabled={Boolean(syncBusy)} onClick={() => setChoice(null)}>Cancel</ActionButton></div></div>}
+      <div className="export-buttons"><ActionButton icon="restore" className="export-btn" loading={syncBusy === 'sync' || syncBusy === 'check'} disabled={Boolean(syncBusy || authBusy)} onClick={() => { if (!engine.current) setCycle(value => value + 1); else { active.current = true; tick() } }}>{syncBusy === 'check' ? 'Checking cloud…' : syncBusy === 'sync' ? 'Syncing…' : 'Sync now'}</ActionButton><ActionButton icon="pause" className="export-btn" onClick={() => { active.current = false; engine.current?.stop(); engine.current = null; operation.current = null; setSyncBusy(''); setChoice(null); setSync(prev => ({ ...prev, status: 'paused' })) }}>Pause sync</ActionButton><ActionButton icon="close" className="export-btn" loading={authBusy === 'signout'} disabled={Boolean(authBusy)} onClick={() => authAction(async () => { active.current = false; engine.current?.stop(); engine.current = null; if (onSignOut) { await onSignOut(); return } const { error } = await client.auth.signOut({ scope: 'local' }); if (error) throw error; setChoice(null); setMessage('Signed out. Your local financial data remains on this browser.') })}>{authBusy === 'signout' ? 'Signing out…' : 'Sign out'}</ActionButton></div>
     </>}
     {sync.error && session && <p role="alert">{sync.error}</p>}{message && <p role="status">{message}</p>}
   </section>

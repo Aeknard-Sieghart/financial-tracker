@@ -26,6 +26,19 @@ function Probe() {
   return <div><h2>Private dashboard</h2><p>{transactions.map(t => t.description).join(', ') || 'No transactions'}</p><p>{categories.expense.map(c => c.name).join(', ')}</p><button onClick={() => setTransactions([{ description: `Record for ${workspace.session.user.id}` }])}>Add private record</button></div>
 }
 const factory = (authSession, lifetime) => ({ userId: authSession.user.id, lifetime })
+it('hides financial records and shows progress until sign-out completes', async () => {
+  const client = authMock(session('a'))
+  let finish
+  client.auth.signOut = vi.fn(() => new Promise(resolve => { finish = resolve }))
+  render(<WorkspaceRoot client={client} project="test" clientFactory={factory}><Probe /></WorkspaceRoot>)
+  await screen.findByText('Private dashboard')
+  fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+  expect(screen.queryByText('Private dashboard')).not.toBeInTheDocument()
+  expect(screen.getByRole('status')).toHaveTextContent('Signing out…')
+  expect(screen.getByRole('status').querySelector('.action-spinner')).not.toBeNull()
+  await act(async () => finish({ error: null }))
+  expect(await screen.findByText('Your finances, your workspace')).toBeInTheDocument()
+})
 it('does not mount financial components while signed out', async () => {
   const client = authMock(null)
   render(<WorkspaceRoot client={client} project="test" clientFactory={factory}><Probe /></WorkspaceRoot>)

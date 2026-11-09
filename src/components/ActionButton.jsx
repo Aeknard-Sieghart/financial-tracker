@@ -25,6 +25,6 @@ export function ActionIcon({ name }) {
   return <svg className="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={paths[name] || paths.settings} /></svg>
 }
 
-export default function ActionButton({ icon, children, className = '', as: Tag = 'button', ...props }) {
-  return <Tag className={`action-button ${className}`} {...props}><ActionIcon name={icon} /><span className="action-button-label">{children}</span></Tag>
+export default function ActionButton({ icon, children, loading = false, className = '', as: Tag = 'button', ...props }) {
+  return <Tag className={`action-button ${className}`} {...props} aria-busy={loading || undefined} disabled={Tag === 'button' ? loading || props.disabled : undefined}>{loading ? <span className="action-spinner" aria-hidden="true" /> : <ActionIcon name={icon} />}<span className="action-button-label">{children}</span></Tag>
 }

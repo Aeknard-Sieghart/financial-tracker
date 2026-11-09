@@ -1,10 +1,19 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import DataBackup from './DataBackup'
 import { debtBalance, debtMonthStatus, repaymentEntries } from '../utils/debts'
 import { incomeOccurrences, incomeReceipt } from '../utils/incomePlans'
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
+it('shows a loading state while reading a backup file', async () => {
+  let finish
+  const { container } = render(<DataBackup transactions={[]} onRestore={vi.fn()} />)
+  fireEvent.change(container.querySelector('input[type=file]'), { target: { files: [{ size: 20, text: () => new Promise(resolve => { finish = resolve }) }] } })
+  expect(screen.getByRole('button', { name: 'Reading backup…' })).toBeDisabled()
+  await act(async () => finish('{"transactions":[]}'))
+  expect(screen.getByRole('button', { name: 'Import data' })).toBeEnabled()
+  expect(screen.getByRole('button', { name: 'Restore backup' })).toBeInTheDocument()
+})
 
 it('requires explicit confirmation before clearing and allows cancellation', () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
