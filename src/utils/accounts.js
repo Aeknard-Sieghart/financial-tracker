@@ -1,11 +1,12 @@
 export const UNASSIGNED_ACCOUNT = { id: 'unassigned', name: 'Unassigned', type: 'other', openingBalance: 0 }
-export function reorderAccounts(accounts, sourceId, targetId) {
+export function reorderAccounts(accounts, sourceId, targetId, placement) {
   const from = accounts.findIndex(a => a.id === sourceId)
   const to = accounts.findIndex(a => a.id === targetId)
   if (from < 0 || to < 0 || from === to) return accounts
   const next = [...accounts]
   const [moved] = next.splice(from, 1)
-  next.splice(to, 0, moved)
+  const destination = placement ? next.findIndex(a => a.id === targetId) + (placement === 'after' ? 1 : 0) : to
+  next.splice(destination, 0, moved)
   return next
 }
 export function canDeleteAccount(account, transactions, transfers, references = []) {

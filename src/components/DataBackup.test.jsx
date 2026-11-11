@@ -34,7 +34,7 @@ it('requires explicit confirmation before clearing and allows cancellation', () 
 })
 
 it('round trips settled principal, fees and the billing month through export and import', async () => {
-  const debt = { id: 'sp', name: 'SPayLater', provider: 'spaylater', openingPrincipal: 5000, dueDate: '2026-11-05', amountType: 'variable', monthlyAmounts: { '2026-11': 2200, '2026-12': 3000 } }
+  const debt = { id: 'sp', name: 'SPayLater', provider: 'spaylater', archived: true, openingPrincipal: 5000, dueDate: '2026-11-05', finalDueDate: '2026-12-05', amountType: 'variable', monthlyAmounts: { '2026-11': 2200, '2026-12': 3000 } }
   // Paid in December against the November statement: both dates must survive.
   const plan = { id: 'salary', name: 'Salary', active: true, days: [15, 30], amount: 15000, category: 'Salary', accountId: 'unassigned', startDate: '2026-11-01' }
   const receipt = incomeReceipt(incomeOccurrences([plan], [], '2026-11-08')[0], 14500, 'unassigned', '2026-11-15')
@@ -56,6 +56,8 @@ it('round trips settled principal, fees and the billing month through export and
   fireEvent.click(screen.getByRole('button', { name: 'Restore backup' }))
   const restored = onRestore.mock.calls[0][0]
   expect(restored.transactions).toEqual(transactions)
+  expect(restored.debts[0].finalDueDate).toBe('2026-12-05')
+  expect(restored.debts[0].archived).toBe(true)
   expect(restored.incomePlans).toEqual([plan])
   expect(restored.spendingBuffer).toBe(500)
   expect(incomeOccurrences(restored.incomePlans, restored.transactions, '2026-11-16').some(o => o.date === '2026-11-15')).toBe(false)

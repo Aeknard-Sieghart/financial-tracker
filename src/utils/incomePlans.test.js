@@ -37,3 +37,9 @@ it('validates saved income plans', () => {
   expect(incomeOccurrences([dateOnly], [], '2026-11-08')[0].date).toBe('2026-11-15')
   for (const invalid of [{ amount: 0 }, { days: [0] }, { days: [32] }, { days: [15, 15] }, { startDate: '2026-02-30' }, { accountId: '' }]) expect(validIncomePlan({ ...plan, ...invalid })).toBe(false)
 })
+it('includes outstanding scheduled payments before payday but stops at the final month', () => {
+  const bounded = { id: 'loan', name: 'Loan', amountType: 'variable', openingPrincipal: 1000, dueDate: '2026-11-05', finalDueDate: '2026-12-05', monthlyAmounts: { '2026-11': 400, '2026-12': 600 } }
+  const payments = paymentsBeforePayday([], [bounded], [], '2027-02-15')
+  expect(payments.map(p => p.dueDate)).toEqual(['2026-11-05', '2026-12-05'])
+  expect(payments.reduce((sum, p) => sum + p.remaining, 0)).toBe(1000)
+})

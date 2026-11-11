@@ -1,9 +1,59 @@
 import { it, expect } from 'vitest'
-import { debtBalance, debtMonthStatus, debtReminders, repaymentEntries, repaymentError, validDebt, DEBT_PROVIDERS } from './debts'
+import { debtBalance, debtMonthStatus, debtReminders, repaymentEntries, repaymentError, validDebt, DEBT_PROVIDERS, fixedPaymentCalculation, debtScheduleMonths, debtScheduleEditError, canDeleteDebt } from './debts'
 import { accountBalance } from './accounts'
 import { lineHistory } from './lineHistory'
 const debt = { id: 'loan', name: 'Maya loan', provider: 'maya-credit', openingPrincipal: 1000, dueDate: '2026-11-20' }
 const account = { id: 'bank', openingBalance: 2000 }
+it('allows deleting only debts without linked transactions, including fees', () => {
+  expect(canDeleteDebt(debt, [])).toBe(true)
+  expect(canDeleteDebt(undefined, [])).toBe(false)
+  expect(canDeleteDebt(debt, repaymentEntries(debt, 100, 25, 'bank', '2026-11-05', 'p1'))).toBe(false)
+  expect(canDeleteDebt(debt, [{ debtId: debt.id, type: 'expense', amount: 25 }])).toBe(false)
+  expect(validDebt({ ...debt, archived: true })).toBeTruthy()
+  expect(validDebt({ ...debt, archived: 'yes' })).toBeFalsy()
+})
+it('keeps archived unpaid debts in reminders and retains their principal', () => {
+  const archived = { ...debt, archived: true }
+  expect(debtBalance(archived, [])).toBe(1000)
+  expect(debtReminders([archived], [], '2026-11-21')).toHaveLength(1)
+})
+it('ends variable schedules without creating new pending months or erasing outstanding principal', () => {
+  const variable = { ...debt, amountType: 'variable', dueDate: '2026-12-05', finalDueDate: '2027-01-05', openingPrincipal: 5161.24, monthlyAmounts: { '2026-12': 3402.37, '2027-01': 1758.87 } }
+  const entries = repaymentEntries(variable, 3402.37, 0, 'bank', '2026-12-05', 'p1', '2026-12')
+  expect(debtMonthStatus(variable, entries, '2027-02')).toMatchObject({ ended: true, pending: false, remaining: 0, status: 'Schedule ended' })
+  expect(debtBalance(variable, entries)).toBe(1758.87)
+  expect(debtReminders([variable], entries, '2027-02-10').map(r => r.month)).toEqual(['2027-01'])
+  expect(debtMonthStatus({ ...variable, finalDueDate: '2027-01-03' }, entries, '2027-01').dueDate).toBe('2027-01-03')
+})
+it('preserves missing statement reminders inside a variable payment period only', () => {
+  const variable = { ...debt, amountType: 'variable', dueDate: '2026-12-05', finalDueDate: '2027-01-05' }
+  expect(debtReminders([variable], [], '2027-03-10').map(r => r.month)).toEqual(['2026-12', '2027-01'])
+  expect(debtMonthStatus(variable, [], '2026-11').status).toBe('Not started')
+})
+it('divides a total inclusively and allocates rounding to the final payment', () => {
+  const fixed = { ...debt, openingPrincipal: 90, amountType: 'fixed', paymentMode: 'calculated', totalRepayment: 100, dueDate: '2026-12-31', finalDueDate: '2027-02-28' }
+  expect(validDebt(fixed)).toBeTruthy()
+  expect(fixedPaymentCalculation(fixed)).toMatchObject({ count: 3, monthlyAmount: 33.33, finalAmount: 33.34 })
+  expect(debtScheduleMonths(fixed)).toEqual(['2026-12', '2027-01', '2027-02'])
+  const states = debtScheduleMonths(fixed).map(m => debtMonthStatus(fixed, [], m))
+  expect(states.map(s => s.dueDate)).toEqual(['2026-12-31', '2027-01-31', '2027-02-28'])
+  expect(states.reduce((sum, s) => sum + Math.round(s.amount * 100), 0)).toBe(10000)
+  expect(debtMonthStatus(fixed, [], '2027-03').status).toBe('Schedule ended')
+})
+it('rejects invalid end dates and calculated totals without changing old manual schedules', () => {
+  expect(validDebt({ ...debt, finalDueDate: '2026-10-01' })).toBeFalsy()
+  expect(validDebt({ ...debt, finalDueDate: '2026-11-30' })).toBeFalsy()
+  expect(validDebt({ ...debt, finalDueDate: '2027-02-30' })).toBeFalsy()
+  expect(validDebt({ ...debt, amountType: 'fixed', paymentMode: 'calculated', totalRepayment: 999, finalDueDate: '2027-02-20' })).toBeFalsy()
+  expect(debtMonthStatus({ ...debt, amountType: 'fixed', paymentAmount: 200 }, [], '2027-12').amount).toBe(200)
+})
+it('prevents edits that exclude recorded months or reduce installments below recorded payments', () => {
+  const fixed = { ...debt, amountType: 'fixed', paymentMode: 'calculated', totalRepayment: 1000, dueDate: '2026-11-20', finalDueDate: '2027-01-20' }
+  const entries = repaymentEntries(fixed, 400, 0, 'bank', '2026-11-20', 'p1', '2026-11')
+  expect(debtScheduleEditError(fixed, entries)).toContain('cannot be less')
+  expect(debtScheduleEditError({ ...fixed, dueDate: '2026-12-20' }, entries)).toContain('cannot exclude')
+  expect(debtScheduleEditError({ ...fixed, monthlyAmounts: { '2027-02': 100 } }, [])).toContain('cannot exclude')
+})
 it('keeps variable statements independent from principal and other months', () => {
   const variable = { ...debt, openingPrincipal: 10000, amountType: 'variable', monthlyAmounts: { '2026-11': 2200, '2026-12': 1800 } }
   const entries = repaymentEntries(variable, 2000, 200, 'bank', '2026-12-01', 'p1', '2026-11')

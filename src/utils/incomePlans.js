@@ -42,7 +42,7 @@ export function paymentsBeforePayday(bills, debts, transactions, payday) {
       }
       const start = kind === 'Bill' ? record.startMonth : record.dueDate.slice(0, 7)
       let [year, month] = start.split('-').map(Number)
-      while (`${year}-${String(month).padStart(2, '0')}` <= payday.slice(0, 7)) {
+      while (`${year}-${String(month).padStart(2, '0')}` <= payday.slice(0, 7) && (kind !== 'Debt' || !record.finalDueDate || `${year}-${String(month).padStart(2, '0')}` <= record.finalDueDate.slice(0, 7))) {
         const period = `${year}-${String(month).padStart(2, '0')}`
         const state = kind === 'Bill' ? billStatus(record, transactions, period) : debtMonthStatus(record, transactions, period)
         if (state.dueDate < payday && (state.pending || state.remaining > 0)) result.push({ ...state, name: record.name, kind, key: `${kind}:${record.id}:${period}` })

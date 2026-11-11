@@ -7,6 +7,22 @@ const base = { accounts, transfers: [], transactions: [], onAccountsChange: vi.f
 beforeEach(() => { HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') } })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 describe('account modal workflows', () => {
+  it('shows the insertion line and inserts at the indicated position', () => {
+    const cards = [accounts[1], { id: 'bank', name: 'Bank', type: 'bank', openingBalance: 100 }, { id: 'wallet', name: 'Wallet', type: 'cash', openingBalance: 50 }]
+    const { container } = render(<Accounts {...base} accounts={cards} />)
+    const [cash, bank] = container.querySelectorAll('.account-card')
+    bank.getBoundingClientRect = () => ({ left: 100, width: 200 })
+    const dataTransfer = { setData: vi.fn() }
+    fireEvent.dragStart(cash, { dataTransfer })
+    const dragOver = new Event('dragover', { bubbles: true, cancelable: true })
+    Object.defineProperties(dragOver, { clientX: { value: 280 }, dataTransfer: { value: dataTransfer } })
+    fireEvent(bank, dragOver)
+    expect(bank.parentElement.querySelector('.account-drop-after')).not.toBeNull()
+    fireEvent.drop(bank, { dataTransfer })
+    expect(base.onAccountsChange.mock.calls[0][0].map(a => a.id)).toEqual(['bank', 'cash', 'wallet'])
+    expect(container.querySelector('.account-drop-line')).toBeNull()
+    fireEvent.dragEnd(cash)
+  })
   it('zeros the actual unassigned balance by offsetting activity only after saving', () => {
     render(<Accounts {...base} transactions={[{ id: 'legacy', type: 'income', amount: 2500, description: 'Earlier salary', date: '2026-11-01' }]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Edit Unassigned account' }))

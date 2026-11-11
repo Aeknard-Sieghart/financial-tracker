@@ -56,7 +56,7 @@ With cloud configuration present, financial components are not mounted while sig
 | Categories | Manage names, icons, and colors | Updates category definitions and corresponding displays/charts. |
 | Monthly bills | Add fixed or variable bill schedules | Calculates monthly due dates. Variable bills require each month's amount before payment. |
 | Bill payment | Record a payment from an account | Creates a linked expense with bill ID and billing month; updates paid/remaining amount and reminders. |
-| Debts | Add a debt and payment schedule | Stores opening principal and fixed/variable monthly amounts. Recording an existing debt does not add income or cash. |
+| Debts | Add a debt and payment schedule | Stores opening principal, first due date, optional final due date, and fixed/variable monthly amounts. Fixed amounts can be calculated from a total repayment over the selected months; variable statements are entered individually. Recording an existing debt does not add income or cash. |
 | Debt repayment | Enter principal, fees, account, date, and billing month | Saves linked principal and optional fee entries. Principal reduces debt; fees count as expense; both reduce the payment account. |
 | Automatic recurring transactions | Create an income/expense rule | Generates due monthly transactions on load, rule updates, and periodic/focus checks. Uses checkpoints to avoid recreating processed entries. |
 | Scheduled income | Set income name, paydays, category, and account | Displays expected payday dates without adding money to the balance. |
